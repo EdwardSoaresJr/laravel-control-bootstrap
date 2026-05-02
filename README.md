@@ -19,10 +19,8 @@ This installs the ReleasePanel control server: system packages, runner, and the 
 Run this on a managed VPS that should be controlled by ReleasePanel but should not host the ReleasePanel UI:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | \
-  RELEASEPANEL_INSTALL_MODE=runner \
-  RELEASEPANEL_RUNNER_KEY='paste-generated-runner-key' \
-  bash
+RELEASEPANEL_RUNNER_KEY='paste-generated-runner-key' \
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/runner.sh)"
 ```
 
 Runner-only mode clones this public repo into `/opt/releasepanel-runner`, runs `runner-bundle/scripts/bootstrap-runner.sh`, writes `runner/.env` when `RELEASEPANEL_RUNNER_KEY` is provided, and skips the hosted `releasepanel-app` deployment entirely.
