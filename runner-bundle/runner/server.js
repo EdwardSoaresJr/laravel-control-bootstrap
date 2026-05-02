@@ -120,8 +120,8 @@ if (!apiKey || apiKey === 'CHANGE_ME') {
     process.exit(1);
 }
 
-if (host !== '127.0.0.1') {
-    console.error('RELEASEPANEL_RUNNER_HOST must be 127.0.0.1.');
+if (!['127.0.0.1', '0.0.0.0'].includes(host)) {
+    console.error('RELEASEPANEL_RUNNER_HOST must be 127.0.0.1 or 0.0.0.0.');
     process.exit(1);
 }
 

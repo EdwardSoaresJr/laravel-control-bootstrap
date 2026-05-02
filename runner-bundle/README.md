@@ -7,8 +7,7 @@ This directory intentionally excludes the private `releasepanel-app` control UI/
 Install through the public bootstrap:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | \
-  RELEASEPANEL_INSTALL_MODE=runner \
-  RELEASEPANEL_RUNNER_KEY='paste-generated-runner-key' \
-  bash
+RELEASEPANEL_PANEL_URL='https://app.releasepanel.com' \
+RELEASEPANEL_RUNNER_KEY='paste-generated-runner-key' \
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/runner.sh)"
 ```

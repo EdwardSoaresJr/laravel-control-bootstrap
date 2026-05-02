@@ -19,6 +19,7 @@ This installs the ReleasePanel control server: system packages, runner, and the 
 Run this on a managed VPS that should be controlled by ReleasePanel but should not host the ReleasePanel UI:
 
 ```bash
+RELEASEPANEL_PANEL_URL='https://app.releasepanel.com' \
 RELEASEPANEL_RUNNER_KEY='paste-generated-runner-key' \
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/runner.sh)"
 ```

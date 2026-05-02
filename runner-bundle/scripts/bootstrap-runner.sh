@@ -11,6 +11,11 @@ fi
 echo "[bootstrap-runner] Installing managed-server runtime only."
 
 RELEASEPANEL_SKIP_APP_BOOTSTRAP=true bash "${SCRIPT_DIR}/01-bootstrap.sh"
+
+if [ -n "${RELEASEPANEL_PANEL_URL:-}" ]; then
+    bash "${SCRIPT_DIR}/register-server.sh" "${RELEASEPANEL_PANEL_URL}"
+fi
+
 bash "${SCRIPT_DIR}/install-runner.sh"
 
 echo "[bootstrap-runner] COMPLETE"
