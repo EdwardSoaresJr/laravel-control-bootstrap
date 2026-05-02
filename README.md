@@ -1,10 +1,10 @@
 # ReleasePanel Bootstrap
 
-Public bootstrap layer for initial ReleasePanel server setup.
+Public bootstrap layer for initial ReleasePanel server setup and customer runner installs.
 
-This repository is intentionally small. It prepares a fresh Ubuntu server just enough to clone the private `releasepanel-deploy` repository, then hands off to that deploy system.
+This repository is intentionally small. Control-server mode prepares a fresh Ubuntu server just enough to clone the private `releasepanel-deploy` repository, then hands off to that deploy system. Runner-only mode uses the public `runner-bundle/` in this repo and never requires private repository access.
 
-## One-Line Install
+## One-Line Control Server Install
 
 Run this on a fresh Ubuntu VPS as `root`:
 
@@ -12,7 +12,22 @@ Run this on a fresh Ubuntu VPS as `root`:
 curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | bash
 ```
 
-The deploy repo is private. Bootstrap will generate an SSH deploy key, print the public key, and pause while you add it to the private `releasepanel-deploy` repo as a read-only deploy key.
+This installs the ReleasePanel control server: system packages, runner, and the `releasepanel-app` UI/API.
+
+## One-Line Runner-Only Install
+
+Run this on a managed VPS that should be controlled by ReleasePanel but should not host the ReleasePanel UI:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | \
+  RELEASEPANEL_INSTALL_MODE=runner \
+  RELEASEPANEL_RUNNER_KEY='paste-generated-runner-key' \
+  bash
+```
+
+Runner-only mode clones this public repo into `/opt/releasepanel-runner`, runs `runner-bundle/scripts/bootstrap-runner.sh`, writes `runner/.env` when `RELEASEPANEL_RUNNER_KEY` is provided, and skips the hosted `releasepanel-app` deployment entirely.
+
+The deploy repo is private only for control-server installs. Bootstrap will generate an SSH deploy key, print the public key, and pause while you add it to the private `releasepanel-deploy` repo as a read-only deploy key.
 
 GitHub deploy key page:
 
@@ -34,36 +49,38 @@ curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstr
 - Installs minimal dependencies: `git`, `curl`, `ca-certificates`
 - Installs `openssh-client`
 - Creates or uses `/root/.ssh/releasepanel_deploy`
-- Clones `git@github.com:EdwardSoaresJr/releasepanel-deploy.git` into `/opt/releasepanel-deploy`
-- Runs `bash scripts/01-bootstrap.sh`
+- Clones `git@github.com:EdwardSoaresJr/releasepanel-deploy.git` into `/opt/releasepanel-deploy` for control mode
+- Clones this public repo into `/opt/releasepanel-runner` for runner-only mode
+- Runs `bash scripts/01-bootstrap.sh` for control mode
+- Runs `bash runner-bundle/scripts/bootstrap-runner.sh` for runner-only mode
 
 ## What This Does Not Do
 
 This repo does not:
 
-- Install nginx, PHP, Redis, Supervisor, MySQL, or app dependencies
-- Deploy applications
+- Deploy the private ReleasePanel control app in runner-only mode
 - Configure sites
-- Call ReleasePanel deploy CLI commands
-- Modify ReleasePanel deploy logic
 - Store or embed secrets
 - Change GitHub repo visibility
 - Manage app repository deploy keys
 
-All real server setup belongs in the `releasepanel-deploy` repo.
+The private `releasepanel-deploy` repo is only needed for the control server.
 
 ## Idempotency
 
 The script is safe to rerun:
 
 - If `/opt/releasepanel-deploy` already exists as a git repo, it is not recloned.
+- If `/opt/releasepanel-runner` already exists as a git repo, it is not recloned.
 - If `/root/.ssh/releasepanel_deploy` already exists, it is reused.
 
 ## Expected Result
 
 After bootstrap completes:
 
-- `/opt/releasepanel-deploy` is present.
-- `scripts/01-bootstrap.sh` has run.
+- Control mode has `/opt/releasepanel-deploy` present.
+- Runner-only mode has `/opt/releasepanel-runner` present.
+- Control mode has run `scripts/01-bootstrap.sh`.
+- Runner-only mode has run `runner-bundle/scripts/bootstrap-runner.sh`.
 
 The server is then ready for runner install and ReleasePanel-driven deploys.

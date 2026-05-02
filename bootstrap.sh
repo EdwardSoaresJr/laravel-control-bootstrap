@@ -8,10 +8,13 @@ export UCF_FORCE_CONFFOLD=1
 readonly DEPLOY_ROOT="/opt"
 readonly DEPLOY_REPO_DIR="${DEPLOY_ROOT}/releasepanel-deploy"
 readonly DEPLOY_REPO_SSH="git@github.com:EdwardSoaresJr/releasepanel-deploy.git"
+readonly RUNNER_REPO_DIR="${DEPLOY_ROOT}/releasepanel-runner"
+readonly RUNNER_REPO_HTTPS="${RELEASEPANEL_RUNNER_REPO_HTTPS:-https://github.com/EdwardSoaresJr/releasepanel-bootstrap.git}"
 readonly GITHUB_REPO_URL="https://github.com/EdwardSoaresJr/releasepanel-deploy/settings/keys"
 readonly SSH_DIR="/root/.ssh"
 readonly DEPLOY_KEY_PATH="${SSH_DIR}/releasepanel_deploy"
 readonly SSH_KNOWN_HOSTS="${SSH_DIR}/known_hosts"
+readonly INSTALL_MODE="${RELEASEPANEL_INSTALL_MODE:-control}"
 
 log() {
   echo "[releasepanel-bootstrap] $*"
@@ -165,11 +168,38 @@ clone_deploy_repo() {
   fi
 }
 
+clone_public_runner_repo() {
+  log "Ensuring public runner bundle is present..."
+
+  mkdir -p "${DEPLOY_ROOT}"
+
+  if [ -d "${RUNNER_REPO_DIR}/.git" ]; then
+    log "Runner bundle repo already exists; updating."
+    git -C "${RUNNER_REPO_DIR}" pull --ff-only
+    return
+  fi
+
+  if [ -e "${RUNNER_REPO_DIR}" ]; then
+    fail "${RUNNER_REPO_DIR} exists but is not a git repository"
+  fi
+
+  log "Cloning public runner bundle from ${RUNNER_REPO_HTTPS}."
+  git clone "${RUNNER_REPO_HTTPS}" "${RUNNER_REPO_DIR}"
+}
+
 handoff_to_private_bootstrap() {
-  log "Handing off to private bootstrap..."
+  log "Handing off to private bootstrap (${INSTALL_MODE} mode)..."
 
   cd "${DEPLOY_REPO_DIR}"
+
   bash scripts/01-bootstrap.sh
+}
+
+handoff_to_public_runner_bootstrap() {
+  log "Handing off to public runner bootstrap..."
+
+  cd "${RUNNER_REPO_DIR}/runner-bundle"
+  bash scripts/bootstrap-runner.sh
 }
 
 main() {
@@ -177,8 +207,20 @@ main() {
 
   require_root
   install_minimal_dependencies
-  clone_deploy_repo
-  handoff_to_private_bootstrap
+
+  case "${INSTALL_MODE}" in
+    control)
+      clone_deploy_repo
+      handoff_to_private_bootstrap
+      ;;
+    runner)
+      clone_public_runner_repo
+      handoff_to_public_runner_bootstrap
+      ;;
+    *)
+      fail "Invalid RELEASEPANEL_INSTALL_MODE=${INSTALL_MODE}. Use control or runner."
+      ;;
+  esac
 
   log "Complete."
 }
