@@ -8,6 +8,7 @@ export UCF_FORCE_CONFFOLD=1
 readonly DEPLOY_ROOT="/opt"
 readonly DEPLOY_REPO_DIR="${DEPLOY_ROOT}/releasepanel-deploy"
 readonly DEPLOY_REPO_SSH="git@github.com:EdwardSoaresJr/releasepanel-deploy.git"
+readonly DEPLOY_REPO_HTTPS="https://github.com/EdwardSoaresJr/releasepanel-deploy.git"
 readonly SSH_DIR="/root/.ssh"
 readonly DEPLOY_KEY_PATH="${SSH_DIR}/releasepanel_bootstrap"
 readonly SSH_CONFIG_PATH="${SSH_DIR}/config"
@@ -42,12 +43,8 @@ install_minimal_dependencies() {
 
 validate_deploy_key_input() {
   if [ -z "${GITHUB_DEPLOY_KEY_B64:-}" ]; then
-    if [ -f "${DEPLOY_KEY_PATH}" ]; then
-      log "Deploy key already exists; continuing without rewriting it."
-      return
-    fi
-
-    fail "Missing GITHUB_DEPLOY_KEY_B64"
+    log "No deploy key provided; public HTTPS clone will be used."
+    return
   fi
 
   if ! printf '%s' "${GITHUB_DEPLOY_KEY_B64}" | base64 -d >/dev/null 2>&1; then
@@ -56,17 +53,18 @@ validate_deploy_key_input() {
 }
 
 configure_ssh() {
+  if [ -z "${GITHUB_DEPLOY_KEY_B64:-}" ]; then
+    return
+  fi
+
   log "Configuring SSH access for GitHub..."
 
   mkdir -p "${SSH_DIR}"
   chmod 700 "${SSH_DIR}"
 
-  if [ ! -f "${DEPLOY_KEY_PATH}" ]; then
-    printf '%s' "${GITHUB_DEPLOY_KEY_B64}" | base64 -d > "${DEPLOY_KEY_PATH}"
-    chmod 600 "${DEPLOY_KEY_PATH}"
-  else
-    log "Deploy key already present; not overwriting."
-  fi
+  install -m 600 /dev/null "${DEPLOY_KEY_PATH}"
+  printf '%s' "${GITHUB_DEPLOY_KEY_B64}" | base64 -d > "${DEPLOY_KEY_PATH}"
+  chmod 600 "${DEPLOY_KEY_PATH}"
 
   touch "${KNOWN_HOSTS_PATH}"
   chmod 600 "${KNOWN_HOSTS_PATH}"
@@ -88,6 +86,10 @@ EOF
 }
 
 verify_github_access() {
+  if [ -z "${GITHUB_DEPLOY_KEY_B64:-}" ]; then
+    return
+  fi
+
   log "Verifying private repo access..."
   git ls-remote "${DEPLOY_REPO_SSH}" >/dev/null
 }
@@ -106,7 +108,14 @@ clone_deploy_repo() {
     fail "${DEPLOY_REPO_DIR} exists but is not a git repository"
   fi
 
-  git clone "${DEPLOY_REPO_SSH}" "${DEPLOY_REPO_DIR}"
+  if [ -n "${GITHUB_DEPLOY_KEY_B64:-}" ]; then
+    log "Cloning deploy repo via SSH."
+    GIT_SSH_COMMAND="ssh -i ${DEPLOY_KEY_PATH} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+      git clone "${DEPLOY_REPO_SSH}" "${DEPLOY_REPO_DIR}"
+  else
+    log "Cloning deploy repo via HTTPS."
+    git clone "${DEPLOY_REPO_HTTPS}" "${DEPLOY_REPO_DIR}"
+  fi
 }
 
 handoff_to_private_bootstrap() {
