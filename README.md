@@ -23,7 +23,7 @@ https://github.com/EdwardSoaresJr/releasepanel-deploy/settings/keys
 If you already have a private deploy key, pass it as base64:
 
 ```bash
-RELEASEPANEL_DEPLOY_KEY_B64="$(base64 -i /path/to/private/key | tr -d '\n')" \
+export RELEASEPANEL_DEPLOY_KEY_B64="$(base64 -i /path/to/private/key | tr -d '\n')"
 curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | bash
 ```
 
