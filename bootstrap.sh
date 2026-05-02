@@ -30,8 +30,11 @@ require_root() {
 
 install_minimal_dependencies() {
   log "Installing minimal dependencies..."
-  apt-get update -y
+  apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update -y
   apt-get install -y \
+    -o Acquire::Retries=3 \
+    -o Acquire::http::Timeout=30 \
+    -o Acquire::https::Timeout=30 \
     -o Dpkg::Options::=--force-confdef \
     -o Dpkg::Options::=--force-confold \
     git curl ca-certificates openssh-client
