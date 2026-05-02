@@ -114,6 +114,18 @@ git_ssh() {
   GIT_SSH_COMMAND="ssh -i ${DEPLOY_KEY_PATH} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" "$@"
 }
 
+write_ssh_config() {
+  cat > "${SSH_DIR}/config" <<EOF
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ${DEPLOY_KEY_PATH}
+  IdentitiesOnly yes
+  StrictHostKeyChecking yes
+EOF
+  chmod 600 "${SSH_DIR}/config"
+}
+
 ensure_deploy_key() {
   ensure_ssh_known_hosts
 
@@ -121,6 +133,8 @@ ensure_deploy_key() {
     generate_deploy_key
     wait_for_key_install
   fi
+
+  write_ssh_config
 }
 
 clone_deploy_repo() {
@@ -129,7 +143,9 @@ clone_deploy_repo() {
   mkdir -p "${DEPLOY_ROOT}"
 
   if [ -d "${DEPLOY_REPO_DIR}/.git" ]; then
-    log "Deploy repo already exists; not recloning."
+    ensure_deploy_key
+    log "Deploy repo already exists; updating with deploy key."
+    git_ssh git -C "${DEPLOY_REPO_DIR}" pull --ff-only
     return
   fi
 
