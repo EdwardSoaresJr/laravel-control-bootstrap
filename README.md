@@ -44,8 +44,8 @@ This repo does not:
 - Install nginx, PHP, Redis, Supervisor, MySQL, or app dependencies
 - Deploy applications
 - Configure sites
-- Call Laravel control CLI commands
-- Modify control panel logic
+- Call ReleasePanel deploy CLI commands
+- Modify ReleasePanel deploy logic
 - Store or embed secrets
 - Change GitHub repo visibility
 - Manage app repository deploy keys
@@ -66,4 +66,4 @@ After bootstrap completes:
 - `/opt/releasepanel-deploy` is present.
 - `scripts/01-bootstrap.sh` has run.
 
-The server is then ready for runner install and control-panel-driven deploys.
+The server is then ready for runner install and ReleasePanel-driven deploys.
