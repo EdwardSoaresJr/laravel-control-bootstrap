@@ -7,7 +7,11 @@ export UCF_FORCE_CONFFOLD=1
 
 readonly DEPLOY_ROOT="/opt"
 readonly DEPLOY_REPO_DIR="${DEPLOY_ROOT}/releasepanel-deploy"
-readonly DEPLOY_REPO_HTTPS="https://github.com/EdwardSoaresJr/releasepanel-deploy.git"
+readonly DEPLOY_REPO_SSH="git@github.com:EdwardSoaresJr/releasepanel-deploy.git"
+readonly GITHUB_REPO_URL="https://github.com/EdwardSoaresJr/releasepanel-deploy/settings/keys"
+readonly SSH_DIR="/root/.ssh"
+readonly DEPLOY_KEY_PATH="${SSH_DIR}/releasepanel_deploy"
+readonly SSH_KNOWN_HOSTS="${SSH_DIR}/known_hosts"
 
 log() {
   echo "[releasepanel-bootstrap] $*"
@@ -33,7 +37,90 @@ install_minimal_dependencies() {
     -o Acquire::https::Timeout=30 \
     -o Dpkg::Options::=--force-confdef \
     -o Dpkg::Options::=--force-confold \
-    git curl ca-certificates
+    git curl ca-certificates openssh-client
+}
+
+ensure_ssh_known_hosts() {
+  mkdir -p "${SSH_DIR}"
+  chmod 700 "${SSH_DIR}"
+  touch "${SSH_KNOWN_HOSTS}"
+  chmod 600 "${SSH_KNOWN_HOSTS}"
+
+  if ! ssh-keygen -F github.com -f "${SSH_KNOWN_HOSTS}" >/dev/null 2>&1; then
+    log "Adding github.com to SSH known_hosts..."
+    ssh-keyscan github.com >> "${SSH_KNOWN_HOSTS}" 2>/dev/null
+  fi
+}
+
+write_key_from_env() {
+  if [ -z "${RELEASEPANEL_DEPLOY_KEY_B64:-}" ]; then
+    return 1
+  fi
+
+  log "Using RELEASEPANEL_DEPLOY_KEY_B64 for private deploy repo access."
+  umask 077
+  printf '%s' "${RELEASEPANEL_DEPLOY_KEY_B64}" | base64 -d > "${DEPLOY_KEY_PATH}" || fail "Invalid RELEASEPANEL_DEPLOY_KEY_B64"
+  chmod 600 "${DEPLOY_KEY_PATH}"
+  ssh-keygen -y -f "${DEPLOY_KEY_PATH}" >/dev/null || fail "Decoded deploy key is not a valid SSH private key"
+
+  return 0
+}
+
+generate_deploy_key() {
+  if [ -f "${DEPLOY_KEY_PATH}" ]; then
+    chmod 600 "${DEPLOY_KEY_PATH}"
+    return
+  fi
+
+  log "Generating SSH deploy key for private releasepanel-deploy repo."
+  ssh-keygen -t ed25519 -N "" -C "releasepanel-deploy@$(hostname)-$(date +%Y%m%d%H%M%S)" -f "${DEPLOY_KEY_PATH}" >/dev/null
+  chmod 600 "${DEPLOY_KEY_PATH}"
+}
+
+print_public_key_instructions() {
+  echo ""
+  echo "============================================================"
+  echo "Add this public key to the private releasepanel-deploy repo:"
+  echo ""
+  cat "${DEPLOY_KEY_PATH}.pub"
+  echo ""
+  echo "GitHub URL:"
+  echo "  ${GITHUB_REPO_URL}"
+  echo ""
+  echo "Use a read-only deploy key. Do not enable write access."
+  echo "============================================================"
+  echo ""
+}
+
+wait_for_key_install() {
+  if [ -n "${RELEASEPANEL_DEPLOY_KEY_B64:-}" ]; then
+    return
+  fi
+
+  print_public_key_instructions
+
+  if [ "${RELEASEPANEL_ASSUME_DEPLOY_KEY_ADDED:-false}" = "true" ]; then
+    return
+  fi
+
+  if [ ! -r /dev/tty ]; then
+    fail "No interactive terminal available. Add the printed key, then rerun with RELEASEPANEL_ASSUME_DEPLOY_KEY_ADDED=true."
+  fi
+
+  read -r -p "Press Enter after adding the deploy key to GitHub..." _ < /dev/tty
+}
+
+git_ssh() {
+  GIT_SSH_COMMAND="ssh -i ${DEPLOY_KEY_PATH} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" "$@"
+}
+
+ensure_deploy_key() {
+  ensure_ssh_known_hosts
+
+  if ! write_key_from_env; then
+    generate_deploy_key
+    wait_for_key_install
+  fi
 }
 
 clone_deploy_repo() {
@@ -50,10 +137,15 @@ clone_deploy_repo() {
     fail "${DEPLOY_REPO_DIR} exists but is not a git repository"
   fi
 
-  log "Cloning deploy repo via HTTPS."
-  if ! GIT_TERMINAL_PROMPT=0 git clone "${DEPLOY_REPO_HTTPS}" "${DEPLOY_REPO_DIR}"; then
+  ensure_deploy_key
+
+  log "Cloning private deploy repo via SSH."
+  if ! git_ssh git clone "${DEPLOY_REPO_SSH}" "${DEPLOY_REPO_DIR}"; then
     rm -rf "${DEPLOY_REPO_DIR}"
-    fail "HTTPS clone failed for public deploy repo: ${DEPLOY_REPO_HTTPS}"
+    if [ -f "${DEPLOY_KEY_PATH}.pub" ]; then
+      print_public_key_instructions
+    fi
+    fail "SSH clone failed for private deploy repo: ${DEPLOY_REPO_SSH}"
   fi
 }
 
