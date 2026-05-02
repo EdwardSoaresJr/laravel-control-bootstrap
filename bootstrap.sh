@@ -114,7 +114,9 @@ clone_deploy_repo() {
       git clone "${DEPLOY_REPO_SSH}" "${DEPLOY_REPO_DIR}"
   else
     log "Cloning deploy repo via HTTPS."
-    git clone "${DEPLOY_REPO_HTTPS}" "${DEPLOY_REPO_DIR}"
+    if ! GIT_TERMINAL_PROMPT=0 git clone "${DEPLOY_REPO_HTTPS}" "${DEPLOY_REPO_DIR}"; then
+      fail "HTTPS clone failed. Make ${DEPLOY_REPO_HTTPS} public or rerun bootstrap with GITHUB_DEPLOY_KEY_B64 for private SSH access."
+    fi
   fi
 }
 
