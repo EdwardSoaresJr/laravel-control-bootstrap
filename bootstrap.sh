@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+export UCF_FORCE_CONFFOLD=1
+
 readonly DEPLOY_ROOT="/opt"
 readonly DEPLOY_REPO_DIR="${DEPLOY_ROOT}/releasepanel-deploy"
 readonly DEPLOY_REPO_SSH="git@github.com:EdwardSoaresJr/releasepanel-deploy.git"
@@ -27,7 +31,10 @@ require_root() {
 install_minimal_dependencies() {
   log "Installing minimal dependencies..."
   apt-get update -y
-  apt-get install -y git curl ca-certificates openssh-client
+  apt-get install -y \
+    -o Dpkg::Options::=--force-confdef \
+    -o Dpkg::Options::=--force-confold \
+    git curl ca-certificates openssh-client
 }
 
 validate_deploy_key_input() {
