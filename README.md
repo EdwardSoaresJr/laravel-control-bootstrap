@@ -12,11 +12,11 @@ Run this on a fresh Ubuntu VPS as `root`:
 curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | bash
 ```
 
-The deploy repo is public, so the default path uses HTTPS and does not require a deploy key.
+The bootstrap tries HTTPS first. If the deploy repo is private, it generates a server-local deploy key, prints the public key, waits for you to add it to GitHub, and then continues over SSH.
 
 ## Private Deploy Repo Key
 
-Only use this section if `releasepanel-deploy` becomes private.
+The interactive flow is preferred because the private key never leaves the server. If you need a non-interactive bootstrap, you can still provide a base64-encoded private key.
 
 From your local machine:
 
@@ -63,10 +63,10 @@ unset GITHUB_DEPLOY_KEY_B64
 `bootstrap.sh` only:
 
 - Installs minimal dependencies: `git`, `curl`, `ca-certificates`, `openssh-client`
-- Clones the public deploy repository over HTTPS by default
-- Optionally writes the GitHub deploy key to `/root/.ssh/releasepanel_bootstrap` when `GITHUB_DEPLOY_KEY_B64` is provided
-- Optionally configures `/root/.ssh/config`, adds `github.com` to `/root/.ssh/known_hosts`, and verifies private repo access
-- Clones `https://github.com/EdwardSoaresJr/releasepanel-deploy.git` into `/opt/releasepanel-deploy`
+- Tries to clone `https://github.com/EdwardSoaresJr/releasepanel-deploy.git` into `/opt/releasepanel-deploy`
+- Falls back to generating `/root/.ssh/releasepanel_bootstrap` and printing its public key when HTTPS cannot access a private repo
+- Optionally writes a supplied GitHub deploy key to `/root/.ssh/releasepanel_bootstrap` when `GITHUB_DEPLOY_KEY_B64` is provided for non-interactive use
+- Configures `/root/.ssh/config`, adds `github.com` to `/root/.ssh/known_hosts`, and verifies private repo access when SSH is needed
 - Runs `bash scripts/01-bootstrap.sh`
 
 ## What This Does Not Do
@@ -88,7 +88,8 @@ All real server setup belongs in the `releasepanel-deploy` repo.
 The script is safe to rerun:
 
 - If `/opt/releasepanel-deploy` already exists as a git repo, it is not recloned.
-- Existing `github.com` entries in `known_hosts` are reused when private SSH clone mode is used.
+- If `/root/.ssh/releasepanel_bootstrap` already exists, it is reused.
+- Existing `github.com` entries in `known_hosts` are reused when SSH clone mode is used.
 
 ## Expected Result
 

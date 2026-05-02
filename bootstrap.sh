@@ -53,18 +53,18 @@ validate_deploy_key_input() {
 }
 
 configure_ssh() {
-  if [ -z "${GITHUB_DEPLOY_KEY_B64:-}" ]; then
-    return
-  fi
-
   log "Configuring SSH access for GitHub..."
 
   mkdir -p "${SSH_DIR}"
   chmod 700 "${SSH_DIR}"
 
-  install -m 600 /dev/null "${DEPLOY_KEY_PATH}"
-  printf '%s' "${GITHUB_DEPLOY_KEY_B64}" | base64 -d > "${DEPLOY_KEY_PATH}"
-  chmod 600 "${DEPLOY_KEY_PATH}"
+  if [ -n "${GITHUB_DEPLOY_KEY_B64:-}" ]; then
+    install -m 600 /dev/null "${DEPLOY_KEY_PATH}"
+    printf '%s' "${GITHUB_DEPLOY_KEY_B64}" | base64 -d > "${DEPLOY_KEY_PATH}"
+    chmod 600 "${DEPLOY_KEY_PATH}"
+  elif [ ! -f "${DEPLOY_KEY_PATH}" ]; then
+    return
+  fi
 
   touch "${KNOWN_HOSTS_PATH}"
   chmod 600 "${KNOWN_HOSTS_PATH}"
@@ -86,12 +86,56 @@ EOF
 }
 
 verify_github_access() {
-  if [ -z "${GITHUB_DEPLOY_KEY_B64:-}" ]; then
+  if [ ! -f "${DEPLOY_KEY_PATH}" ]; then
     return
   fi
 
   log "Verifying private repo access..."
-  git ls-remote "${DEPLOY_REPO_SSH}" >/dev/null
+  GIT_SSH_COMMAND="ssh -i ${DEPLOY_KEY_PATH} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+    git ls-remote "${DEPLOY_REPO_SSH}" >/dev/null
+}
+
+ensure_interactive_deploy_key() {
+  log "HTTPS clone failed; generating a deploy key for private repo access."
+
+  if [ ! -r /dev/tty ]; then
+    fail "No interactive terminal is available. Rerun with GITHUB_DEPLOY_KEY_B64 or make ${DEPLOY_REPO_HTTPS} public."
+  fi
+
+  mkdir -p "${SSH_DIR}"
+  chmod 700 "${SSH_DIR}"
+
+  if [ ! -f "${DEPLOY_KEY_PATH}" ]; then
+    ssh-keygen -t ed25519 -C "releasepanel-bootstrap@$(hostname -f 2>/dev/null || hostname)" -f "${DEPLOY_KEY_PATH}" -N ""
+    chmod 600 "${DEPLOY_KEY_PATH}"
+  fi
+
+  configure_ssh
+
+  echo
+  echo "Add this public key to GitHub:"
+  echo
+  echo "  ${DEPLOY_REPO_HTTPS}"
+  echo "  Settings -> Deploy keys -> Add deploy key"
+  echo "  Title: releasepanel-bootstrap-$(hostname -s 2>/dev/null || hostname)"
+  echo "  Allow write access: unchecked"
+  echo
+  cat "${DEPLOY_KEY_PATH}.pub"
+  echo
+
+  while true; do
+    printf 'Press Enter after adding the deploy key to GitHub, or Ctrl+C to stop. ' > /dev/tty
+    read -r _ < /dev/tty
+
+    if verify_github_access; then
+      log "GitHub deploy key verified."
+      return
+    fi
+
+    echo
+    echo "GitHub still rejected the key. Confirm it was added to ${DEPLOY_REPO_HTTPS} as a deploy key."
+    echo
+  done
 }
 
 clone_deploy_repo() {
@@ -115,7 +159,11 @@ clone_deploy_repo() {
   else
     log "Cloning deploy repo via HTTPS."
     if ! GIT_TERMINAL_PROMPT=0 git clone "${DEPLOY_REPO_HTTPS}" "${DEPLOY_REPO_DIR}"; then
-      fail "HTTPS clone failed. Make ${DEPLOY_REPO_HTTPS} public or rerun bootstrap with GITHUB_DEPLOY_KEY_B64 for private SSH access."
+      rm -rf "${DEPLOY_REPO_DIR}"
+      ensure_interactive_deploy_key
+      log "Cloning deploy repo via SSH."
+      GIT_SSH_COMMAND="ssh -i ${DEPLOY_KEY_PATH} -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+        git clone "${DEPLOY_REPO_SSH}" "${DEPLOY_REPO_DIR}"
     fi
   fi
 }
