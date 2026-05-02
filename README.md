@@ -1,6 +1,6 @@
-# ARK-SMS Bootstrap
+# Laravel Control Bootstrap
 
-Public bootstrap layer for initial ARK-SMS VPS setup.
+Public bootstrap layer for initial Laravel control server setup.
 
 This repository is intentionally small. It prepares a fresh Ubuntu server just enough to clone the private `arksms-server-deploy` repository, then hands off to that private deploy system.
 
@@ -9,7 +9,7 @@ This repository is intentionally small. It prepares a fresh Ubuntu server just e
 Run this on a fresh Ubuntu VPS as `root`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/ark-sms-bootstrap/main/bootstrap.sh | \
+curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/laravel-control-bootstrap/main/bootstrap.sh | \
   GITHUB_DEPLOY_KEY_B64="PASTE_BASE64_DEPLOY_KEY_HERE" bash
 ```
 
