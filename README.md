@@ -9,16 +9,41 @@ This repository is intentionally small. It prepares a fresh Ubuntu server just e
 Run this on a fresh Ubuntu VPS as `root`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/laravel-control-bootstrap/main/bootstrap.sh | \
-  GITHUB_DEPLOY_KEY_B64="PASTE_BASE64_DEPLOY_KEY_HERE" bash
+export GITHUB_DEPLOY_KEY_B64="PASTE_BASE64_DEPLOY_KEY_HERE"
+
+curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/laravel-control-bootstrap/main/bootstrap.sh | bash
+
+unset GITHUB_DEPLOY_KEY_B64
 ```
 
-## Create The Base64 Deploy Key
+## Create The Deploy Key
 
 From your local machine:
 
 ```bash
-base64 -i ~/.ssh/arksms_deploy_key | pbcopy
+ssh-keygen -t ed25519 -C "laravel-control-bootstrap" -f ~/.ssh/laravel_control_bootstrap -N ""
+```
+
+Copy the public key:
+
+```bash
+pbcopy < ~/.ssh/laravel_control_bootstrap.pub
+```
+
+Add it to the private deploy repo:
+
+`laravel-control-deploy` > Settings > Deploy keys > Add deploy key
+
+Use:
+
+- Title: `laravel-control-bootstrap`
+- Key: paste the public key
+- Allow write access: unchecked
+
+Then copy the base64-encoded private key:
+
+```bash
+base64 ~/.ssh/laravel_control_bootstrap | pbcopy
 ```
 
 Paste the copied value into `GITHUB_DEPLOY_KEY_B64`.
@@ -28,11 +53,11 @@ Paste the copied value into `GITHUB_DEPLOY_KEY_B64`.
 `bootstrap.sh` only:
 
 - Installs minimal dependencies: `git`, `curl`, `ca-certificates`, `openssh-client`
-- Writes the GitHub deploy key to `/root/.ssh/arksms_deploy`
+- Writes the GitHub deploy key to `/root/.ssh/laravel_control_bootstrap`
 - Configures `/root/.ssh/config`
 - Adds `github.com` to `/root/.ssh/known_hosts` with `ssh-keyscan`
 - Verifies access to the private deploy repository
-- Clones `git@github.com:EdwardSoaresJr/laravel-control-deploy.git` into `/opt/arksms/laravel-control-deploy`
+- Clones `git@github.com:EdwardSoaresJr/laravel-control-deploy.git` into `/opt/laravel-control/laravel-control-deploy`
 - Runs `bash scripts/01-bootstrap.sh`
 
 ## What This Does Not Do
@@ -42,7 +67,7 @@ This repo does not:
 - Install nginx, PHP, Redis, Supervisor, MySQL, or app dependencies
 - Deploy applications
 - Configure sites
-- Call ARK-SMS CLI commands
+- Call Laravel control CLI commands
 - Modify control panel logic
 - Store or embed secrets
 - Prompt interactively
@@ -53,8 +78,8 @@ All real server setup belongs in the private `laravel-control-deploy` repo.
 
 The script is safe to rerun:
 
-- If `/root/.ssh/arksms_deploy` already exists, it is not overwritten.
-- If `/opt/arksms/laravel-control-deploy` already exists as a git repo, it is not recloned.
+- If `/root/.ssh/laravel_control_bootstrap` already exists, it is not overwritten.
+- If `/opt/laravel-control/laravel-control-deploy` already exists as a git repo, it is not recloned.
 - Existing `github.com` entries in `known_hosts` are reused.
 
 ## Expected Result
@@ -62,7 +87,7 @@ The script is safe to rerun:
 After bootstrap completes:
 
 - SSH access to GitHub is configured.
-- `/opt/arksms/laravel-control-deploy` is present.
+- `/opt/laravel-control/laravel-control-deploy` is present.
 - `scripts/01-bootstrap.sh` has run.
 
 The server is then ready for runner install and control-panel-driven deploys.

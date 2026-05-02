@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly DEPLOY_ROOT="/opt/arksms"
+readonly DEPLOY_ROOT="/opt/laravel-control"
 readonly DEPLOY_REPO_DIR="${DEPLOY_ROOT}/laravel-control-deploy"
 readonly DEPLOY_REPO_SSH="git@github.com:EdwardSoaresJr/laravel-control-deploy.git"
 readonly SSH_DIR="/root/.ssh"
-readonly DEPLOY_KEY_PATH="${SSH_DIR}/arksms_deploy"
+readonly DEPLOY_KEY_PATH="${SSH_DIR}/laravel_control_bootstrap"
 readonly SSH_CONFIG_PATH="${SSH_DIR}/config"
 readonly KNOWN_HOSTS_PATH="${SSH_DIR}/known_hosts"
 
 log() {
-  echo "[ark-sms-bootstrap] $*"
+  echo "[laravel-control-bootstrap] $*"
 }
 
 fail() {
-  echo "[ark-sms-bootstrap] ERROR: $*" >&2
+  echo "[laravel-control-bootstrap] ERROR: $*" >&2
   exit 1
 }
 
