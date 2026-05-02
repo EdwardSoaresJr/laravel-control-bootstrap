@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly DEPLOY_ROOT="/opt/laravel-control"
+readonly DEPLOY_ROOT="/opt"
 readonly DEPLOY_REPO_DIR="${DEPLOY_ROOT}/laravel-control-deploy"
 readonly DEPLOY_REPO_SSH="git@github.com:EdwardSoaresJr/laravel-control-deploy.git"
 readonly SSH_DIR="/root/.ssh"

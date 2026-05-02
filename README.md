@@ -57,7 +57,7 @@ Paste the copied value into `GITHUB_DEPLOY_KEY_B64`.
 - Configures `/root/.ssh/config`
 - Adds `github.com` to `/root/.ssh/known_hosts` with `ssh-keyscan`
 - Verifies access to the private deploy repository
-- Clones `git@github.com:EdwardSoaresJr/laravel-control-deploy.git` into `/opt/laravel-control/laravel-control-deploy`
+- Clones `git@github.com:EdwardSoaresJr/laravel-control-deploy.git` into `/opt/laravel-control-deploy`
 - Runs `bash scripts/01-bootstrap.sh`
 
 ## What This Does Not Do
@@ -79,7 +79,7 @@ All real server setup belongs in the private `laravel-control-deploy` repo.
 The script is safe to rerun:
 
 - If `/root/.ssh/laravel_control_bootstrap` already exists, it is not overwritten.
-- If `/opt/laravel-control/laravel-control-deploy` already exists as a git repo, it is not recloned.
+- If `/opt/laravel-control-deploy` already exists as a git repo, it is not recloned.
 - Existing `github.com` entries in `known_hosts` are reused.
 
 ## Expected Result
@@ -87,7 +87,7 @@ The script is safe to rerun:
 After bootstrap completes:
 
 - SSH access to GitHub is configured.
-- `/opt/laravel-control/laravel-control-deploy` is present.
+- `/opt/laravel-control-deploy` is present.
 - `scripts/01-bootstrap.sh` has run.
 
 The server is then ready for runner install and control-panel-driven deploys.
