@@ -2,19 +2,19 @@
 set -euo pipefail
 
 readonly DEPLOY_ROOT="/opt"
-readonly DEPLOY_REPO_DIR="${DEPLOY_ROOT}/laravel-control-deploy"
-readonly DEPLOY_REPO_SSH="git@github.com:EdwardSoaresJr/laravel-control-deploy.git"
+readonly DEPLOY_REPO_DIR="${DEPLOY_ROOT}/releasepanel-deploy"
+readonly DEPLOY_REPO_SSH="git@github.com:EdwardSoaresJr/releasepanel-deploy.git"
 readonly SSH_DIR="/root/.ssh"
-readonly DEPLOY_KEY_PATH="${SSH_DIR}/laravel_control_bootstrap"
+readonly DEPLOY_KEY_PATH="${SSH_DIR}/releasepanel_bootstrap"
 readonly SSH_CONFIG_PATH="${SSH_DIR}/config"
 readonly KNOWN_HOSTS_PATH="${SSH_DIR}/known_hosts"
 
 log() {
-  echo "[laravel-control-bootstrap] $*"
+  echo "[releasepanel-bootstrap] $*"
 }
 
 fail() {
-  echo "[laravel-control-bootstrap] ERROR: $*" >&2
+  echo "[releasepanel-bootstrap] ERROR: $*" >&2
   exit 1
 }
 
