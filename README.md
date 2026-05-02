@@ -2,7 +2,7 @@
 
 Public bootstrap layer for initial Laravel control server setup.
 
-This repository is intentionally small. It prepares a fresh Ubuntu server just enough to clone the private `arksms-server-deploy` repository, then hands off to that private deploy system.
+This repository is intentionally small. It prepares a fresh Ubuntu server just enough to clone the private `laravel-control-deploy` repository, then hands off to that private deploy system.
 
 ## One-Line Install
 
@@ -32,7 +32,7 @@ Paste the copied value into `GITHUB_DEPLOY_KEY_B64`.
 - Configures `/root/.ssh/config`
 - Adds `github.com` to `/root/.ssh/known_hosts` with `ssh-keyscan`
 - Verifies access to the private deploy repository
-- Clones `git@github.com:EdwardSoaresJr/arksms-server-deploy.git` into `/opt/arksms/arksms-server-deploy`
+- Clones `git@github.com:EdwardSoaresJr/laravel-control-deploy.git` into `/opt/arksms/laravel-control-deploy`
 - Runs `bash scripts/01-bootstrap.sh`
 
 ## What This Does Not Do
@@ -47,14 +47,14 @@ This repo does not:
 - Store or embed secrets
 - Prompt interactively
 
-All real server setup belongs in the private `arksms-server-deploy` repo.
+All real server setup belongs in the private `laravel-control-deploy` repo.
 
 ## Idempotency
 
 The script is safe to rerun:
 
 - If `/root/.ssh/arksms_deploy` already exists, it is not overwritten.
-- If `/opt/arksms/arksms-server-deploy` already exists as a git repo, it is not recloned.
+- If `/opt/arksms/laravel-control-deploy` already exists as a git repo, it is not recloned.
 - Existing `github.com` entries in `known_hosts` are reused.
 
 ## Expected Result
@@ -62,7 +62,7 @@ The script is safe to rerun:
 After bootstrap completes:
 
 - SSH access to GitHub is configured.
-- `/opt/arksms/arksms-server-deploy` is present.
+- `/opt/arksms/laravel-control-deploy` is present.
 - `scripts/01-bootstrap.sh` has run.
 
 The server is then ready for runner install and control-panel-driven deploys.

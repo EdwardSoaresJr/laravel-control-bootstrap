@@ -2,8 +2,8 @@
 set -euo pipefail
 
 readonly DEPLOY_ROOT="/opt/arksms"
-readonly DEPLOY_REPO_DIR="${DEPLOY_ROOT}/arksms-server-deploy"
-readonly DEPLOY_REPO_SSH="git@github.com:EdwardSoaresJr/arksms-server-deploy.git"
+readonly DEPLOY_REPO_DIR="${DEPLOY_ROOT}/laravel-control-deploy"
+readonly DEPLOY_REPO_SSH="git@github.com:EdwardSoaresJr/laravel-control-deploy.git"
 readonly SSH_DIR="/root/.ssh"
 readonly DEPLOY_KEY_PATH="${SSH_DIR}/arksms_deploy"
 readonly SSH_CONFIG_PATH="${SSH_DIR}/config"
