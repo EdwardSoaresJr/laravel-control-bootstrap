@@ -8,9 +8,11 @@ export UCF_FORCE_CONFFOLD=1
 readonly DEPLOY_ROOT="/opt"
 readonly DEPLOY_REPO_DIR="${DEPLOY_ROOT}/releasepanel-deploy"
 readonly DEPLOY_REPO_SSH="git@github.com:EdwardSoaresJr/releasepanel-deploy.git"
-readonly DEPLOY_REPO_HTTPS="${RELEASEPANEL_DEPLOY_REPO_HTTPS:-https://github.com/EdwardSoaresJr/releasepanel-deploy.git}"
+# Runner (managed) servers: toolkit + agent must clone anonymously — public HTTPS only (see clone_deploy_repo_https).
+readonly DEFAULT_RUNNER_TOOLKIT_HTTPS="https://github.com/EdwardSoaresJr/releasepanel-deploy.git"
+readonly DEFAULT_RUNNER_AGENT_HTTPS="https://github.com/EdwardSoaresJr/releasepanel-runner.git"
 readonly RUNNER_REPO_DIR="${DEPLOY_ROOT}/releasepanel-runner"
-readonly RUNNER_REPO_HTTPS="${RELEASEPANEL_RUNNER_REPO_HTTPS:-https://github.com/EdwardSoaresJr/releasepanel-runner.git}"
+readonly RUNNER_REPO_HTTPS="${RELEASEPANEL_RUNNER_REPO_HTTPS:-${DEFAULT_RUNNER_AGENT_HTTPS}}"
 readonly GITHUB_REPO_URL="https://github.com/EdwardSoaresJr/releasepanel-deploy/settings/keys"
 readonly SSH_DIR="/root/.ssh"
 readonly DEPLOY_KEY_PATH="${SSH_DIR}/releasepanel_deploy"
@@ -170,13 +172,24 @@ clone_deploy_repo() {
 }
 
 clone_deploy_repo_https() {
-  log "Cloning deploy toolkit via HTTPS (${DEPLOY_REPO_HTTPS})..."
+  local toolkit_url="${RELEASEPANEL_RUNNER_PUBLIC_TOOLKIT_URL:-${DEFAULT_RUNNER_TOOLKIT_HTTPS}}"
+
+  if [ -n "${RELEASEPANEL_DEPLOY_REPO_HTTPS:-}" ]; then
+    log "Ignoring RELEASEPANEL_DEPLOY_REPO_HTTPS in runner mode (anonymous public clone only)."
+    log "For a different public mirror, set RELEASEPANEL_RUNNER_PUBLIC_TOOLKIT_URL."
+  fi
+
+  export GIT_TERMINAL_PROMPT=0
+
+  log "Cloning deploy toolkit via public HTTPS (${toolkit_url})..."
 
   mkdir -p "${DEPLOY_ROOT}"
 
   if [ -d "${DEPLOY_REPO_DIR}/.git" ]; then
     log "Deploy toolkit already present; pulling."
-    git -C "${DEPLOY_REPO_DIR}" pull --ff-only
+    if ! git -c credential.helper= -C "${DEPLOY_REPO_DIR}" pull --ff-only; then
+      fail "git pull failed. Fix ${DEPLOY_REPO_DIR} remote/auth, or remove the directory for a fresh anonymous clone."
+    fi
 
     return
   fi
@@ -185,19 +198,27 @@ clone_deploy_repo_https() {
     fail "${DEPLOY_REPO_DIR} exists but is not a git repository"
   fi
 
-  if ! git clone "${DEPLOY_REPO_HTTPS}" "${DEPLOY_REPO_DIR}"; then
-    fail "HTTPS clone failed. The toolkit must be readable without a deploy key (public repo) or set RELEASEPANEL_DEPLOY_REPO_HTTPS to an authenticated URL."
+  if ! git -c credential.helper= clone "${toolkit_url}" "${DEPLOY_REPO_DIR}"; then
+    echo "" >&2
+    echo "Runner installs require an anonymous (unauthenticated) git clone of the toolkit." >&2
+    echo "If you see this error, the toolkit URL is not anonymously readable — open the GitHub repo to the world (public) or set RELEASEPANEL_RUNNER_PUBLIC_TOOLKIT_URL to another public HTTPS clone URL." >&2
+    echo "For a private toolkit, do not use RELEASEPANEL_INSTALL_MODE=runner; use control mode with a deploy key instead." >&2
+    fail "HTTPS clone failed (non-interactive)."
   fi
 }
 
 clone_public_runner_agent_repo() {
   log "Ensuring public runner agent repo is present..."
 
+  export GIT_TERMINAL_PROMPT=0
+
   mkdir -p "${DEPLOY_ROOT}"
 
   if [ -d "${RUNNER_REPO_DIR}/.git" ]; then
     log "Runner agent repo already exists; updating."
-    git -C "${RUNNER_REPO_DIR}" pull --ff-only
+    if ! git -c credential.helper= -C "${RUNNER_REPO_DIR}" pull --ff-only; then
+      fail "git pull failed for ${RUNNER_REPO_DIR}."
+    fi
 
     return
   fi
@@ -207,7 +228,9 @@ clone_public_runner_agent_repo() {
   fi
 
   log "Cloning runner agent from ${RUNNER_REPO_HTTPS}."
-  git clone "${RUNNER_REPO_HTTPS}" "${RUNNER_REPO_DIR}"
+  if ! git -c credential.helper= clone "${RUNNER_REPO_HTTPS}" "${RUNNER_REPO_DIR}"; then
+    fail "HTTPS clone failed for runner agent. Use a public ${DEFAULT_RUNNER_AGENT_HTTPS} or set RELEASEPANEL_RUNNER_REPO_HTTPS to a publicly cloneable URL."
+  fi
 }
 
 link_runner_agent_into_toolkit() {
