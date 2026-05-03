@@ -3,7 +3,7 @@
 Public bootstrap layer with two roles:
 
 - **Master ReleasePanel server** — stand up the machine that **hosts** ReleasePanel for your customers (`INSTALL_MODE=control`).
-- **Customer VPS** — connect a shop’s server to **their account** on your hosted ReleasePanel (`INSTALL_MODE=runner`, **[releasepanel-runner](https://github.com/EdwardSoaresJr/releasepanel-runner)** only).
+- **Customer VPS** — connect a shop’s server to **their account** on your hosted ReleasePanel (**[releasepanel-runner](https://github.com/EdwardSoaresJr/releasepanel-runner)** `install-managed-vps.sh`, or legacy **`bootstrap.sh INSTALL_MODE=runner`**).
 
 ## Master server — ReleasePanel control plane (`INSTALL_MODE=control`, default)
 
@@ -11,12 +11,18 @@ Prepares Ubuntu just enough to **SSH-clone** private **[releasepanel-deploy](htt
 
 Generates a deploy key unless you pass **`RELEASEPANEL_DEPLOY_KEY_B64`**.
 
-## Customer VPS — link to hosted ReleasePanel (`INSTALL_MODE=runner`)
+## Customer VPS — link to hosted ReleasePanel
 
-Used by the ReleasePanel UI **Bootstrap command** (sets this mode) so a **customer’s VPS** joins **their account**. **No** deploy key, **one** public `git clone`:
+Canonical installer: **`install-managed-vps.sh`** in **[releasepanel-runner](https://github.com/EdwardSoaresJr/releasepanel-runner)** (raw GitHub). **No** deploy key.
 
-1. **`git clone`** **[releasepanel-runner](https://github.com/EdwardSoaresJr/releasepanel-runner)** → `/opt/releasepanel-runner` (contains the Node agent **and** embedded **`toolkit/`** — same shell scripts as **releasepanel-deploy**).
-2. Runs **`/opt/releasepanel-runner/toolkit/scripts/bootstrap-runner.sh`** (system packages via **`01-bootstrap.sh`** with **`RELEASEPANEL_SKIP_APP_BOOTSTRAP`**, **`install-runner.sh`**, optional **`register-server.sh`**).
+1. Installs `git` / `curl`, then **`git clone`** public **releasepanel-runner** → `/opt/releasepanel-runner`.
+2. Runs **`toolkit/scripts/bootstrap-runner.sh`**.
+
+The ReleasePanel UI **Bootstrap command** uses that raw URL with env vars (`RELEASEPANEL_PANEL_URL`, `RELEASEPANEL_SERVER_ID`, `RELEASEPANEL_RUNNER_KEY`).
+
+**`runner.sh`** in this repo is optional: it `curl`s **`install-managed-vps.sh`** (override with **`RELEASEPANEL_MANAGED_VPS_INSTALL_URL`**).
+
+**`bootstrap.sh` with `INSTALL_MODE=runner`** remains supported as an alternate entrypoint (same clone + handoff).
 
 Anonymous HTTPS only; use **`RELEASEPANEL_RUNNER_REPO_HTTPS`** only for a **public** mirror of **releasepanel-runner**.
 
@@ -34,7 +40,7 @@ RELEASEPANEL_RUNNER_KEY='paste-generated-runner-key' \
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/runner.sh)"
 ```
 
-`runner.sh` forces **`RELEASEPANEL_INSTALL_MODE=runner`**.
+`runner.sh` downloads **`install-managed-vps.sh`** from **releasepanel-runner** (not **`bootstrap.sh`**).
 
 ## Deploy key (master server / `control` mode only)
 
@@ -51,9 +57,10 @@ curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstr
 
 | Variable | Purpose |
 |----------|---------|
-| `RELEASEPANEL_INSTALL_MODE` | `control` = **your** master ReleasePanel host; `runner` = **customer** VPS agent |
+| `RELEASEPANEL_INSTALL_MODE` | `control` = **your** master ReleasePanel host; `runner` = legacy customer path inside **`bootstrap.sh`** (prefer **`install-managed-vps.sh`** from **releasepanel-runner**) |
 | `RELEASEPANEL_RUNNER_REPO_HTTPS` | **releasepanel-runner** git URL (default: public `EdwardSoaresJr/releasepanel-runner`) |
-| `RELEASEPANEL_BOOTSTRAP_URL` | Used by `runner.sh` to fetch `bootstrap.sh` |
+| `RELEASEPANEL_MANAGED_VPS_INSTALL_URL` | Used by **`runner.sh`** to fetch **`install-managed-vps.sh`** (default: **releasepanel-runner** raw URL) |
+| `RELEASEPANEL_BOOTSTRAP_URL` | Legacy; **`control`** mode one-liner only |
 
 ## Idempotency
 

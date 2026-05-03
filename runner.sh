@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export RELEASEPANEL_INSTALL_MODE=runner
+INSTALL_URL="${RELEASEPANEL_MANAGED_VPS_INSTALL_URL:-https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-runner/main/scripts/install-managed-vps.sh}"
 
-BOOTSTRAP_URL="${RELEASEPANEL_BOOTSTRAP_URL:-https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh}"
-
-curl -fsSL "${BOOTSTRAP_URL}" | bash
+curl -fsSL "${INSTALL_URL}" | bash
