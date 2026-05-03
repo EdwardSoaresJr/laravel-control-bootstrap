@@ -71,11 +71,11 @@ curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstr
 | `RELEASEPANEL_RUNNER_REPO_HTTPS` | **releasepanel-runner** git URL (default: public `EdwardSoaresJr/releasepanel-runner`) |
 | `RELEASEPANEL_MANAGED_VPS_INSTALL_URL` | Used by **`runner.sh`** to fetch **`install-managed-vps.sh`** (default: **releasepanel-runner** raw URL) |
 | `RELEASEPANEL_BOOTSTRAP_URL` | Legacy; **`control`** mode one-liner only |
-| `RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN` | Set `true` to force **`control`** one-liner to run **`01-bootstrap.sh`** again after the panel already exists (repair / you accept stack re-run) |
+| `RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN` | Set `true` so **`control`** one-liner, **`01-bootstrap.sh`**, or **`bootstrap-releasepanel.sh`** may run again after the panel exists (repair / you accept a full stack re-run) |
 | `RELEASEPANEL_BOOTSTRAP_APT_UPGRADE` | On the server: set `true` with **`01-bootstrap.sh`** to run **`apt upgrade`** even when the stack was provisioned before (default skips repeat full upgrades) |
 | `RELEASEPANEL_BOOTSTRAP_SKIP_APT_UPGRADE` | Set `true` to skip **`apt upgrade`** even on first bootstrap (advanced) |
 
 ## Idempotency
 
 - **`INSTALL_MODE=runner`:** Pulling **releasepanel-runner** and re-running **`bootstrap-runner.sh`** is the intended path; still prefer **`install-managed-vps.sh`** from the panel for new servers.
-- **`INSTALL_MODE=control`:** The one-liner **refuses** to continue if the panel tree already exists, so you don’t accidentally full-stack bootstrap on every update. Use **`releasepanel self-update`** on the server instead.
+- **`INSTALL_MODE=control`:** The one-liner **refuses** to continue if the panel tree already exists, so you don’t accidentally full-stack bootstrap on every update. On the server, **`01-bootstrap.sh`** and **`bootstrap-releasepanel.sh`** also refuse a second full install unless **`RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN=true`** (or **`RELEASEPANEL_BOOTSTRAP_FORCE_FRESH=true`** for advanced reprovision); a marker is written to **`/var/lib/releasepanel/bootstrap-complete`** when the installer finishes. Use **`releasepanel self-update`** for routine code sync.
