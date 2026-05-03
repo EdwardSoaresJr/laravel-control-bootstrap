@@ -10,12 +10,12 @@ Generates a deploy key unless you pass **`RELEASEPANEL_DEPLOY_KEY_B64`**.
 
 ## Managed runner (`INSTALL_MODE=runner`)
 
-Used by the ReleasePanel UI **Bootstrap command** (sets this mode). **No** deploy key:
+Used by the ReleasePanel UI **Bootstrap command** (sets this mode). **No** deploy key, **one** public `git clone`:
 
-1. **`git clone`** **[releasepanel-deploy](https://github.com/EdwardSoaresJr/releasepanel-deploy)** via **anonymous HTTPS** → `/opt/releasepanel-deploy` (repo **must** be public or use **`RELEASEPANEL_RUNNER_PUBLIC_TOOLKIT_URL`** pointing at another **publicly** cloneable mirror — no passwords, no prompts).
-2. **`git clone`** **[releasepanel-runner](https://github.com/EdwardSoaresJr/releasepanel-runner)** → `/opt/releasepanel-runner` (same rules: public HTTPS only unless you set **`RELEASEPANEL_RUNNER_REPO_HTTPS`** to another public URL).
-3. **`runner/`** in the toolkit is replaced with a **symlink** to `/opt/releasepanel-runner`.
-4. Runs **`/opt/releasepanel-deploy/scripts/bootstrap-runner.sh`** (system packages via **`01-bootstrap.sh`** with **`RELEASEPANEL_SKIP_APP_BOOTSTRAP`**, **`install-runner.sh`**, optional **`register-server.sh`**).
+1. **`git clone`** **[releasepanel-runner](https://github.com/EdwardSoaresJr/releasepanel-runner)** → `/opt/releasepanel-runner` (contains the Node agent **and** embedded **`toolkit/`** — same shell scripts as **releasepanel-deploy**).
+2. Runs **`/opt/releasepanel-runner/toolkit/scripts/bootstrap-runner.sh`** (system packages via **`01-bootstrap.sh`** with **`RELEASEPANEL_SKIP_APP_BOOTSTRAP`**, **`install-runner.sh`**, optional **`register-server.sh`**).
+
+Anonymous HTTPS only; use **`RELEASEPANEL_RUNNER_REPO_HTTPS`** only for a **public** mirror of **releasepanel-runner**.
 
 ## One-line control server
 
@@ -49,10 +49,9 @@ curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstr
 | Variable | Purpose |
 |----------|---------|
 | `RELEASEPANEL_INSTALL_MODE` | `control` (default) or `runner` |
-| `RELEASEPANEL_RUNNER_PUBLIC_TOOLKIT_URL` | Optional **public** HTTPS URL for the deploy toolkit (default: `EdwardSoaresJr/releasepanel-deploy`). **`RELEASEPANEL_DEPLOY_REPO_HTTPS` is ignored in runner mode** — runner installs never use authenticated git URLs. |
-| `RELEASEPANEL_RUNNER_REPO_HTTPS` | Runner agent git URL (default: public `releasepanel-runner`) |
+| `RELEASEPANEL_RUNNER_REPO_HTTPS` | **releasepanel-runner** git URL (default: public `EdwardSoaresJr/releasepanel-runner`) |
 | `RELEASEPANEL_BOOTSTRAP_URL` | Used by `runner.sh` to fetch `bootstrap.sh` |
 
 ## Idempotency
 
-Safe to rerun: existing git checkouts are **pulled**; **`runner/`** symlink is recreated.
+Safe to rerun: existing **releasepanel-runner** checkout is **pulled**; bootstrap re-runs from **`toolkit/scripts/bootstrap-runner.sh`**.
