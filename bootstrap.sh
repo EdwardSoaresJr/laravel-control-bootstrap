@@ -8,8 +8,9 @@ export UCF_FORCE_CONFFOLD=1
 readonly DEPLOY_ROOT="/opt"
 readonly DEPLOY_REPO_DIR="${DEPLOY_ROOT}/releasepanel-deploy"
 readonly DEPLOY_REPO_SSH="git@github.com:EdwardSoaresJr/releasepanel-deploy.git"
+readonly DEPLOY_REPO_HTTPS="${RELEASEPANEL_DEPLOY_REPO_HTTPS:-https://github.com/EdwardSoaresJr/releasepanel-deploy.git}"
 readonly RUNNER_REPO_DIR="${DEPLOY_ROOT}/releasepanel-runner"
-readonly RUNNER_REPO_HTTPS="${RELEASEPANEL_RUNNER_REPO_HTTPS:-https://github.com/EdwardSoaresJr/releasepanel-bootstrap.git}"
+readonly RUNNER_REPO_HTTPS="${RELEASEPANEL_RUNNER_REPO_HTTPS:-https://github.com/EdwardSoaresJr/releasepanel-runner.git}"
 readonly GITHUB_REPO_URL="https://github.com/EdwardSoaresJr/releasepanel-deploy/settings/keys"
 readonly SSH_DIR="/root/.ssh"
 readonly DEPLOY_KEY_PATH="${SSH_DIR}/releasepanel_deploy"
@@ -168,14 +169,36 @@ clone_deploy_repo() {
   fi
 }
 
-clone_public_runner_repo() {
-  log "Ensuring public runner bundle is present..."
+clone_deploy_repo_https() {
+  log "Cloning deploy toolkit via HTTPS (${DEPLOY_REPO_HTTPS})..."
+
+  mkdir -p "${DEPLOY_ROOT}"
+
+  if [ -d "${DEPLOY_REPO_DIR}/.git" ]; then
+    log "Deploy toolkit already present; pulling."
+    git -C "${DEPLOY_REPO_DIR}" pull --ff-only
+
+    return
+  fi
+
+  if [ -e "${DEPLOY_REPO_DIR}" ]; then
+    fail "${DEPLOY_REPO_DIR} exists but is not a git repository"
+  fi
+
+  if ! git clone "${DEPLOY_REPO_HTTPS}" "${DEPLOY_REPO_DIR}"; then
+    fail "HTTPS clone failed. The toolkit must be readable without a deploy key (public repo) or set RELEASEPANEL_DEPLOY_REPO_HTTPS to an authenticated URL."
+  fi
+}
+
+clone_public_runner_agent_repo() {
+  log "Ensuring public runner agent repo is present..."
 
   mkdir -p "${DEPLOY_ROOT}"
 
   if [ -d "${RUNNER_REPO_DIR}/.git" ]; then
-    log "Runner bundle repo already exists; updating."
+    log "Runner agent repo already exists; updating."
     git -C "${RUNNER_REPO_DIR}" pull --ff-only
+
     return
   fi
 
@@ -183,8 +206,18 @@ clone_public_runner_repo() {
     fail "${RUNNER_REPO_DIR} exists but is not a git repository"
   fi
 
-  log "Cloning public runner bundle from ${RUNNER_REPO_HTTPS}."
+  log "Cloning runner agent from ${RUNNER_REPO_HTTPS}."
   git clone "${RUNNER_REPO_HTTPS}" "${RUNNER_REPO_DIR}"
+}
+
+link_runner_agent_into_toolkit() {
+  if [ -e "${DEPLOY_REPO_DIR}/runner" ] && [ ! -L "${DEPLOY_REPO_DIR}/runner" ]; then
+    log "Removing embedded toolkit runner/ in favor of standalone ${RUNNER_REPO_DIR}."
+    rm -rf "${DEPLOY_REPO_DIR}/runner"
+  fi
+
+  ln -sfn "${RUNNER_REPO_DIR}" "${DEPLOY_REPO_DIR}/runner"
+  log "Linked ${DEPLOY_REPO_DIR}/runner -> ${RUNNER_REPO_DIR}"
 }
 
 handoff_to_private_bootstrap() {
@@ -196,9 +229,13 @@ handoff_to_private_bootstrap() {
 }
 
 handoff_to_public_runner_bootstrap() {
-  log "Handing off to public runner bootstrap..."
+  log "Managed server: toolkit (HTTPS) + releasepanel-runner agent + bootstrap-runner.sh"
 
-  cd "${RUNNER_REPO_DIR}/runner-bundle"
+  clone_deploy_repo_https
+  clone_public_runner_agent_repo
+  link_runner_agent_into_toolkit
+
+  cd "${DEPLOY_REPO_DIR}"
   bash scripts/bootstrap-runner.sh
 }
 
@@ -214,7 +251,6 @@ main() {
       handoff_to_private_bootstrap
       ;;
     runner)
-      clone_public_runner_repo
       handoff_to_public_runner_bootstrap
       ;;
     *)
