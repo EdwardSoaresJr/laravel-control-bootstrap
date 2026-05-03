@@ -28,9 +28,19 @@ Anonymous HTTPS only; use **`RELEASEPANEL_RUNNER_REPO_HTTPS`** only for a **publ
 
 ## One-line master server (your ReleasePanel host)
 
+**First install only.** After ReleasePanel exists under `/var/www/sites/releasepanel-app/production`, **do not** re-pipe this script for updates — it is **not** `self-update` and will re-run the full stack bootstrap.
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | bash
 ```
+
+**Updates (already installed):**
+
+```bash
+cd /opt/releasepanel-deploy && git pull --ff-only origin main && sudo releasepanel self-update
+```
+
+**Intentional repair re-bootstrap:** `RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN=true` with the same curl (rare; expect stack scripts to run again).
 
 ## One-line customer VPS (paste panel URL + runner key)
 
@@ -61,7 +71,11 @@ curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstr
 | `RELEASEPANEL_RUNNER_REPO_HTTPS` | **releasepanel-runner** git URL (default: public `EdwardSoaresJr/releasepanel-runner`) |
 | `RELEASEPANEL_MANAGED_VPS_INSTALL_URL` | Used by **`runner.sh`** to fetch **`install-managed-vps.sh`** (default: **releasepanel-runner** raw URL) |
 | `RELEASEPANEL_BOOTSTRAP_URL` | Legacy; **`control`** mode one-liner only |
+| `RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN` | Set `true` to force **`control`** one-liner to run **`01-bootstrap.sh`** again after the panel already exists (repair / you accept stack re-run) |
+| `RELEASEPANEL_BOOTSTRAP_APT_UPGRADE` | On the server: set `true` with **`01-bootstrap.sh`** to run **`apt upgrade`** even when the stack was provisioned before (default skips repeat full upgrades) |
+| `RELEASEPANEL_BOOTSTRAP_SKIP_APT_UPGRADE` | Set `true` to skip **`apt upgrade`** even on first bootstrap (advanced) |
 
 ## Idempotency
 
-Safe to rerun: existing **releasepanel-runner** checkout is **pulled**; bootstrap re-runs from **`toolkit/scripts/bootstrap-runner.sh`**.
+- **`INSTALL_MODE=runner`:** Pulling **releasepanel-runner** and re-running **`bootstrap-runner.sh`** is the intended path; still prefer **`install-managed-vps.sh`** from the panel for new servers.
+- **`INSTALL_MODE=control`:** The one-liner **refuses** to continue if the panel tree already exists, so you don’t accidentally full-stack bootstrap on every update. Use **`releasepanel self-update`** on the server instead.

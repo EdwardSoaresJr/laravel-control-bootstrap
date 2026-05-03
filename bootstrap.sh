@@ -196,6 +196,35 @@ clone_public_runner_bundle() {
   fi
 }
 
+control_plane_appears_installed() {
+  local base="/var/www/sites/releasepanel-app/production"
+  [ -L "${base}/current" ] && [ -f "${base}/shared/.env" ]
+}
+
+refuse_repeat_control_curl_bootstrap() {
+  if [ "${INSTALL_MODE}" != "control" ]; then
+    return 0
+  fi
+  if [ "${RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN:-}" = "true" ]; then
+    log "RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN=true — continuing with 01-bootstrap.sh (repair only; not for routine updates)."
+    return 0
+  fi
+  if ! control_plane_appears_installed; then
+    return 0
+  fi
+  echo "" >&2
+  log "This host already has ReleasePanel under /var/www/sites/releasepanel-app/production."
+  log "Re-running this curl installer is not an update path — it runs 01-bootstrap again (stack + apt) and has broken production boxes."
+  log ""
+  log "Update the control plane instead:"
+  log "  cd ${DEPLOY_REPO_DIR} && git pull --ff-only origin main && sudo releasepanel self-update"
+  log ""
+  log "Repository was refreshed above; you can run self-update now without this script."
+  log "Repair-only re-bootstrap: RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN=true curl ... | bash"
+  echo "" >&2
+  exit 1
+}
+
 handoff_to_private_bootstrap() {
   log "Handing off to private bootstrap (${INSTALL_MODE} mode)..."
 
@@ -224,6 +253,7 @@ main() {
   case "${INSTALL_MODE}" in
     control)
       clone_deploy_repo
+      refuse_repeat_control_curl_bootstrap
       handoff_to_private_bootstrap
       ;;
     runner)
