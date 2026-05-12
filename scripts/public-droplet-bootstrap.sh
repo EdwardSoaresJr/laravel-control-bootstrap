@@ -7,7 +7,8 @@
 # Establishes Git read access (deploy key), clones private releasepanel-central, hands off to:
 #   scripts/bootstrap-central.sh (and verify-central.sh) inside that repo when .env exists.
 #
-# Run on Ubuntu 24.04 as a sudo-capable user (e.g. ubuntu), not as root.
+# Run on Ubuntu 24.04 as a sudo-capable user (e.g. ubuntu). Invoked as root, the script
+# re-runs as ubuntu (override with RP_BOOTSTRAP_USER) when that account exists.
 #
 # One-liner (after setting CENTRAL_REPO_SSH):
 #   curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/control-install.sh -o /tmp/rp-install.sh && bash /tmp/rp-install.sh
@@ -20,6 +21,7 @@
 #   CENTRAL_DEPLOY_KEY_B64 | INSTALL_DEPLOY_KEY_B64 | RELEASEPANEL_DEPLOY_KEY_B64  Optional. Base64 PEM private key
 #   FORCE_NEW_DEPLOY_KEY  If 1: replace existing private key at DEPLOY_KEY_PATH
 #   SKIP_SSH_PROMPT      If 1: do not wait for Enter after showing pubkey (for advanced automation)
+#   RP_BOOTSTRAP_USER    When invoked as root, sudo to this user (default: ubuntu if present)
 #
 # Does NOT print .env; does NOT install mysql-server/mariadb-server; does NOT embed GitHub tokens.
 #
@@ -30,8 +32,29 @@ log() {
 }
 
 if [[ "$(id -u)" -eq 0 ]]; then
-  echo "ERROR: run as a sudo-capable user (e.g. ubuntu), not root." >&2
-  exit 1
+  _rp_u="${RP_BOOTSTRAP_USER:-}"
+  if [[ -z "${_rp_u}" ]] && id ubuntu &>/dev/null; then
+    _rp_u=ubuntu
+  fi
+  if [[ -z "${_rp_u}" ]] || ! id "${_rp_u}" &>/dev/null; then
+    echo "ERROR: run as a sudo-capable user (e.g. ubuntu), not root." >&2
+    echo "  su - ubuntu   # then re-run this command" >&2
+    echo "  Or: RP_BOOTSTRAP_USER=myuser env ... bash ...  # account must exist" >&2
+    exit 1
+  fi
+  log "Invoked as root — re-running as ${_rp_u} (deploy key and clone ownership)."
+  exec sudo -u "${_rp_u}" -H env \
+    CENTRAL_REPO_SSH="${CENTRAL_REPO_SSH:-}" \
+    GITHUB_REPO_SSH="${GITHUB_REPO_SSH:-}" \
+    CENTRAL_APP_ROOT="${CENTRAL_APP_ROOT:-}" \
+    CENTRAL_BRANCH="${CENTRAL_BRANCH:-}" \
+    DEPLOY_KEY_PATH="${DEPLOY_KEY_PATH:-}" \
+    FORCE_NEW_DEPLOY_KEY="${FORCE_NEW_DEPLOY_KEY:-}" \
+    SKIP_SSH_PROMPT="${SKIP_SSH_PROMPT:-}" \
+    CENTRAL_DEPLOY_KEY_B64="${CENTRAL_DEPLOY_KEY_B64:-}" \
+    INSTALL_DEPLOY_KEY_B64="${INSTALL_DEPLOY_KEY_B64:-}" \
+    RELEASEPANEL_DEPLOY_KEY_B64="${RELEASEPANEL_DEPLOY_KEY_B64:-}" \
+    bash "$0" "$@"
 fi
 
 CENTRAL_REPO_SSH="${CENTRAL_REPO_SSH:-${GITHUB_REPO_SSH:-}}"

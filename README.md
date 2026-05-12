@@ -41,7 +41,7 @@ Bootstrap repos **drift** into shadow platforms (extra provisioning, env engines
 
 ## Canonical one-line (control plane host)
 
-**Set** `CENTRAL_REPO_SSH` to your **private** `git@github.com:…/releasepanel-central.git`.
+**Set** `CENTRAL_REPO_SSH` to your **private** `git@github.com:…/releasepanel-central.git`. If you **SSH as root** (common on new droplets), the script **re-runs as `ubuntu`** so deploy keys and `/var/www` ownership stay consistent; override with **`RP_BOOTSTRAP_USER`** if needed.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/control-install.sh -o /tmp/rp-install.sh \
@@ -86,6 +86,7 @@ Aliases for the same B64 value: **`INSTALL_DEPLOY_KEY_B64`**, **`RELEASEPANEL_DE
 | `CENTRAL_BOOTSTRAP_SCRIPT_URL` | Pin full raw URL of `public-droplet-bootstrap.sh` (tags/releases). |
 | `CENTRAL_DEPLOY_KEY_B64` / `INSTALL_DEPLOY_KEY_B64` / `RELEASEPANEL_DEPLOY_KEY_B64` | Optional PEM private key, base64; skips interactive deploy-key step. |
 | `SKIP_SSH_PROMPT` | `1` if Deploy key is **already** on GitHub (no TTY). |
+| `RP_BOOTSTRAP_USER` | When **root** runs the bootstrap script, sudo to this user (default **`ubuntu`** if the account exists). |
 | `FORCE_NEW_DEPLOY_KEY` | `1` to regenerate key files. |
 
 Further Central bootstrap options (**`CENTRAL_WEB_HOSTNAME`**, Certbot, verify URL, …) are documented in **releasepanel-central** (`scripts/bootstrap-central.sh`, docs).
