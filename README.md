@@ -56,6 +56,7 @@ Customer or agent nodes are **not** installed from here; that is **releasepanel-
 
 - **Fresh disposable Ubuntu VPS** — cold bootstrap, not a shared workstation.
 - **`bootstrap.sh`** may **replace `/root/.ssh/config`** with a minimal **`Host github.com`** block tied to the deploy key.
+- **`bootstrap.sh`**, as **root**, registers **`git config --global safe.directory <CENTRAL_APP_ROOT>`** when needed so **Git ≥ 2.35** can update a clone already **chown**ed to **`ubuntu`** (re-runs after handoff).
 - **No** secrets committed in this repo.
 - **No** **`.env`** generation here — you create **`.env`** in the private clone.
 - **No** `mysql-server` / `mariadb-server` (Central uses **managed** MySQL off the VPS).
