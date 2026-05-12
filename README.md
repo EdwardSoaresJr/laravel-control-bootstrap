@@ -72,14 +72,16 @@ Use these only when you already know you need them.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | \
-  env CENTRAL_REPO_SSH='git@github.com:YOUR_ORG/releasepanel-central.git' bash
+  env CENTRAL_REPO_SSH='git@github.com:your-org/releasepanel-central.git' bash
 ```
+
+*(Use your real GitHub user or org in place of `your-org`.)*
 
 **Non-interactive** (deploy key already registered on the repo):
 
 ```bash
 export CENTRAL_DEPLOY_KEY_B64="…"   # base64 PEM; see Central docs for tooling
-export CENTRAL_REPO_SSH='git@github.com:YOUR_ORG/releasepanel-central.git'
+export CENTRAL_REPO_SSH='git@github.com:your-org/releasepanel-central.git'
 curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | bash
 ```
 
