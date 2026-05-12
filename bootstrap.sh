@@ -201,6 +201,15 @@ refuse_repeat_control_curl_bootstrap() {
 clone_central_repo() {
   log "Ensuring releasepanel-central clone at ${CENTRAL_APP_ROOT}..."
 
+  # Git 2.35+: root cannot operate on a repo owned by another user (e.g. ubuntu after handoff) unless
+  # the path is marked safe — required on re-runs after chown_clone_for_handoff.
+  if command -v git >/dev/null 2>&1; then
+    if ! git config --global --get-all safe.directory 2>/dev/null | grep -qxF "${CENTRAL_APP_ROOT}"; then
+      git config --global --add safe.directory "${CENTRAL_APP_ROOT}"
+      log "git: registered safe.directory for ${CENTRAL_APP_ROOT} (root owns git process, clone may be ${HANDOFF_USER})"
+    fi
+  fi
+
   mkdir -p "$(dirname "${CENTRAL_APP_ROOT}")"
 
   if [ -d "${CENTRAL_APP_ROOT}/.git" ]; then
