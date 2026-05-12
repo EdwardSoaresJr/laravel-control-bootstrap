@@ -6,12 +6,12 @@ Contents here are **archived** for history and **must not** be used for new **re
 
 | File | Era |
 |------|-----|
-| `old-bootstrap.sh` | Cloned private **releasepanel-deploy** (legacy), ran `scripts/01-bootstrap.sh`, `INSTALL_MODE=control` or `runner`. Its **operational patterns** (root-first droplet, hardened apt, deploy-key + `~/.ssh/config`, rerun guard) are **ported** into **`../scripts/public-droplet-bootstrap.sh`** for **releasepanel-central**. |
+| `old-bootstrap.sh` | Cloned **releasepanel-deploy** (legacy). **Operational mechanics** are ported literally into repo-root **`bootstrap.sh`** for **releasepanel-central** (root, apt, SSH config, deploy key, clone, rerun guard, **`bootstrap-central.sh`** handoff). |
 | `runner.sh` | Fetched **releasepanel-runner** `install-managed-vps.sh` for customer VPS enrollment. |
 
 New architecture:
 
-- **Public:** `releasepanel-bootstrap` → `control-install.sh` → `scripts/public-droplet-bootstrap.sh`
+- **Public:** `releasepanel-bootstrap` → **`bootstrap.sh`** (self-contained). **`control-install.sh`** / **`scripts/public-droplet-bootstrap.sh`** fetch **`bootstrap.sh`** for old URLs.
 - **Private:** `releasepanel-central` → `scripts/bootstrap-central.sh` → `verify-central.sh`
 
 See **`old-runner-flow-notes.md`** and **`pre-central-README.md`** for the prior operator-facing documentation snapshot.

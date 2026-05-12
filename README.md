@@ -14,13 +14,14 @@ This repository stays **tiny**, **shell-only**, **auditable**, and **boring by d
 **Flow:**
 
 ```text
-Fresh VPS
-  → curl control-install.sh
-  → generate or supply deploy key (B64 optional)
-  → git ls-remote + clone private releasepanel-central
-  → ./scripts/bootstrap-central.sh (authoritative converge)
-  → verify-central.sh (operational truth)
+Fresh VPS (root)
+  → curl bootstrap.sh | bash
+  → hardened apt + /root/.ssh deploy key + ssh config
+  → git ls-remote + clone/pull private releasepanel-central
+  → bootstrap-central.sh when .env exists (verify via bootstrap flow)
   → operational Central
+
+Routine updates: git pull --ff-only + deploy-central.sh (not this installer).
 ```
 
 ---
@@ -41,27 +42,32 @@ Bootstrap repos **drift** into shadow platforms (extra provisioning, env engines
 
 ## Canonical one-line (control plane host)
 
-**Set** `CENTRAL_REPO_SSH` to your **private** `git@github.com:…/releasepanel-central.git`. **Root `curl | bash` is supported** (same posture as the pre–Central OG bootstrap): deploy keys live under **`/root/.ssh`**, apt uses hardened options, **`~/.ssh/config`** pins GitHub to the deploy key; the clone is **`chown`**’d to **`ubuntu`** (or **`RP_BOOTSTRAP_USER`**) before **`bootstrap-central.sh`**.
+Installer is **`bootstrap.sh`** — **one self-contained file**, mechanically aligned with **`legacy/old-bootstrap.sh`**, pointed at **releasepanel-central** and **`bootstrap-central.sh`**. **Must run as root** (`sudo -i`). Forks: set **`CENTRAL_REPO_SSH`**.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/control-install.sh -o /tmp/rp-install.sh \
-  && env CENTRAL_REPO_SSH='git@github.com:EdwardSoaresJr/releasepanel-central.git' bash /tmp/rp-install.sh
+curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | bash
 ```
 
-*(Forks or private mirrors: substitute your GitHub user or org for `EdwardSoaresJr` in the URL above.)*
-
-**Interactive path:** run from an **SSH session** so the script can pause after printing the **Deploy key** (or use **B64** / **`SKIP_SSH_PROMPT=1`** per below).
-
-**Non-interactive / CI / DR** (key **already** a Deploy key on GitHub):
+With explicit repo (recommended for private forks):
 
 ```bash
-export CENTRAL_DEPLOY_KEY_B64="$(base64 -w0 < /path/to/deploy_key_ed25519)"   # GNU base64; macOS: base64 -i ... | tr -d '\n'
+curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | \
+  env CENTRAL_REPO_SSH='git@github.com:EdwardSoaresJr/releasepanel-central.git' bash
+```
+
+**Interactive path:** SSH session with TTY for deploy-key paste, or **`RELEASEPANEL_ASSUME_DEPLOY_KEY_ADDED=true`** / **`SKIP_SSH_PROMPT=1`** / **`*_DEPLOY_KEY_B64`**.
+
+**Non-interactive** (key already on GitHub):
+
+```bash
+export CENTRAL_DEPLOY_KEY_B64="$(base64 -w0 < /path/to/deploy_key_ed25519)"
 export CENTRAL_REPO_SSH='git@github.com:EdwardSoaresJr/releasepanel-central.git'
-curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/control-install.sh -o /tmp/rp-install.sh \
-  && bash /tmp/rp-install.sh
+curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | bash
 ```
 
-Aliases for the same B64 value: **`INSTALL_DEPLOY_KEY_B64`**, **`RELEASEPANEL_DEPLOY_KEY_B64`**.
+**Legacy URLs:** **`control-install.sh`** and **`scripts/public-droplet-bootstrap.sh`** only fetch **`bootstrap.sh`** — prefer **`bootstrap.sh`** for new bookmarks.
+
+*(Forks: set `CENTRAL_REPO_SSH` to your clone URL.)*
 
 ---
 
@@ -69,9 +75,10 @@ Aliases for the same B64 value: **`INSTALL_DEPLOY_KEY_B64`**, **`RELEASEPANEL_DE
 
 | Path | Purpose |
 |------|---------|
-| `control-install.sh` | Downloads `scripts/public-droplet-bootstrap.sh` to a temp file and `exec`s it. |
-| `scripts/public-droplet-bootstrap.sh` | OG-era patterns (see **`legacy/old-bootstrap.sh`**) adapted for Central: deploy key, `ssh/config`, `git ls-remote`, clone/**`pull --ff-only`**, rerun guard when **`vendor/`** exists, hand off to **`bootstrap-central.sh`**. |
-| `legacy/` | **Archived** installers aimed at the old **`releasepanel-deploy`** monorepo (and runner paths). **`releasepanel-deploy` is legacy** — replaced by **`releasepanel-central`**. **Do not use for new installs.** |
+| **`bootstrap.sh`** | **Canonical.** Single-file installer (OG **`old-bootstrap.sh`** mechanics → Central + **`bootstrap-central.sh`**). |
+| `control-install.sh` | Legacy name: **downloads `bootstrap.sh`** and execs. |
+| `scripts/public-droplet-bootstrap.sh` | Legacy path: same as **`control-install.sh`**. |
+| `legacy/` | **Archived** installers (`releasepanel-deploy` / runner). **Do not use** for new installs. |
 
 ---
 
@@ -79,11 +86,11 @@ Aliases for the same B64 value: **`INSTALL_DEPLOY_KEY_B64`**, **`RELEASEPANEL_DE
 
 | Variable | Purpose |
 |----------|---------|
-| `CENTRAL_REPO_SSH` | **Required.** SSH URL for private **releasepanel-central**. Alias: `GITHUB_REPO_SSH`. |
+| `CENTRAL_REPO_SSH` | SSH URL for private **releasepanel-central** (default upstream example in **`bootstrap.sh`**). Alias: `GITHUB_REPO_SSH`. |
 | `CENTRAL_APP_ROOT` | Clone target (default `/var/www/releasepanel-central`). |
 | `CENTRAL_BRANCH` | Git branch (default `main`). |
-| `CENTRAL_PUBLIC_BASE` | Override raw URL root for this repo’s `main` tree (advanced). |
-| `CENTRAL_BOOTSTRAP_SCRIPT_URL` | Pin full raw URL of `public-droplet-bootstrap.sh` (tags/releases). |
+| `CENTRAL_PUBLIC_BASE` | Override raw URL root for this repo’s `main` tree (wrappers only). |
+| `CENTRAL_BOOTSTRAP_SCRIPT_URL` | Pin full raw URL of **`bootstrap.sh`** (tags/releases). |
 | `CENTRAL_DEPLOY_KEY_B64` / `INSTALL_DEPLOY_KEY_B64` / `RELEASEPANEL_DEPLOY_KEY_B64` | Optional PEM private key, base64; skips interactive deploy-key step. |
 | `SKIP_SSH_PROMPT` | `1` if Deploy key is **already** on GitHub (no TTY). |
 | `RELEASEPANEL_ASSUME_DEPLOY_KEY_ADDED` | `true` — same as **`SKIP_SSH_PROMPT=1`** (OG-era name). |
@@ -122,4 +129,4 @@ See **`legacy/README.md`** and **`legacy/old-runner-flow-notes.md`**.
 ## Related
 
 - Private app: **releasepanel-central** — `README.md`, `docs/FIRST-DEPLOY-SMOKE.md`, `docs/PRODUCTION-DEPLOYMENT.md`.
-- Optional stable URL: serve the same `control-install.sh` from your own static host; content should match this repo.
+- Optional stable URL: serve **`bootstrap.sh`** (or a thin wrapper that fetches it) from your own static host.
