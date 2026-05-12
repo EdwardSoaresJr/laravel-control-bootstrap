@@ -97,6 +97,7 @@ Further Central bootstrap options (**`CENTRAL_WEB_HOSTNAME`**, Certbot, verify U
 
 ## Safety posture (explicit)
 
+- **Designed for** a **fresh Ubuntu cloud VPS** (cold bootstrap). **Not** for laptops or servers where **`~/.ssh/config`** already encodes other identities — this installer **replaces** that file with a minimal **`Host github.com`** block.
 - **No** secrets committed in this repo.
 - **No** `.env` generation — operator creates **`.env`** in the private clone from **`.env.example`**.
 - **No** `mysql-server` / `mariadb-server` install from these scripts (Central uses **DigitalOcean Managed MySQL**).

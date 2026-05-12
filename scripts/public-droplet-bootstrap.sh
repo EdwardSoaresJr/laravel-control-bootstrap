@@ -13,6 +13,10 @@
 # Run on Ubuntu 24.04 as **root** (OG-style, typical `curl | bash` on a new droplet) or as a **sudo-capable**
 # user (e.g. ubuntu). As root, clone ownership is fixed for the handoff user (**ubuntu** or **RP_BOOTSTRAP_USER**).
 #
+# **Intended environment:** a **fresh, disposable Ubuntu VPS** (empty-ish `~/.ssh`). This script **overwrites**
+# `$HOME/.ssh/config` (or `/root/.ssh/config`) with a single `Host github.com` block — correct for cold droplets;
+# **do not** run on a workstation or shared host where you rely on an existing SSH config.
+#
 # One-liner (after setting CENTRAL_REPO_SSH):
 #   curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/control-install.sh -o /tmp/rp-install.sh && bash /tmp/rp-install.sh
 #
