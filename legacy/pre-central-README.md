@@ -1,5 +1,7 @@
 # Snapshot: README before releasepanel-central bootstrap (archival)
 
+**The private repo `releasepanel-deploy` described below is LEGACY** — it was **replaced** by **`releasepanel-central`**. Do not use this snapshot for current installs.
+
 This is a copy of the **releasepanel-bootstrap** `README.md` from the **releasepanel-deploy** / **releasepanel-runner** era, preserved so historical links and operator notes stay understandable.
 
 ---

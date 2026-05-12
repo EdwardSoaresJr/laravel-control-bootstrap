@@ -2,9 +2,11 @@
 
 Contents here are **archived** for history and **must not** be used for new **releasepanel-central** installs.
 
+**`releasepanel-deploy`** (the private repo these scripts targeted) is **legacy architecture** — **replaced** by **`releasepanel-central`**. See **releasepanel-central** `docs/legacy/README.md` for terminology.
+
 | File | Era |
 |------|-----|
-| `old-bootstrap.sh` | Cloned private **releasepanel-deploy**, ran `scripts/01-bootstrap.sh`, `INSTALL_MODE=control` or `runner`. |
+| `old-bootstrap.sh` | Cloned private **releasepanel-deploy** (legacy), ran `scripts/01-bootstrap.sh`, `INSTALL_MODE=control` or `runner`. |
 | `runner.sh` | Fetched **releasepanel-runner** `install-managed-vps.sh` for customer VPS enrollment. |
 
 New architecture:

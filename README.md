@@ -9,6 +9,7 @@ This repository stays **tiny**, **shell-only**, **auditable**, and **boring by d
 | **releasepanel-bootstrap** (this repo, **public**) | Deploy key + clone private **`releasepanel-central`**; hand off to **`bootstrap-central.sh`**. No secrets here. No product logic. |
 | **releasepanel-central** (**private**) | Operational control plane: Laravel app, converge scripts, **`.env`**, Managed MySQL, real deployment behavior. |
 | **releasepanel-agent** (**private**, agent runtime) | Execution / enrollment on managed nodes — **not** installed from this repo. |
+| **releasepanel-deploy** (**legacy**) | **Former** private monorepo — **replaced by `releasepanel-central`**. **Not** an install or bootstrap target; historical docs live in **releasepanel-central** under **`docs/legacy/`**. |
 
 **Flow:**
 
@@ -68,7 +69,7 @@ Aliases for the same B64 value: **`INSTALL_DEPLOY_KEY_B64`**, **`RELEASEPANEL_DE
 |------|---------|
 | `control-install.sh` | Downloads `scripts/public-droplet-bootstrap.sh` to a temp file and `exec`s it. |
 | `scripts/public-droplet-bootstrap.sh` | Deploy key, `git ls-remote`, clone/ff-only pull, **`exec bootstrap-central.sh`** if **`.env`** exists; else exit **2** with instructions. |
-| `legacy/` | **Archived** installer for the **pre–releasepanel-central** stack (**releasepanel-deploy** / runner modes). **Do not use for new installs.** |
+| `legacy/` | **Archived** installers aimed at the old **`releasepanel-deploy`** monorepo (and runner paths). **`releasepanel-deploy` is legacy** — replaced by **`releasepanel-central`**. **Do not use for new installs.** |
 
 ---
 
@@ -101,7 +102,7 @@ Further Central bootstrap options (**`CENTRAL_WEB_HOSTNAME`**, Certbot, verify U
 
 ## Legacy (pre–Central architecture)
 
-**Older** scripts that cloned **releasepanel-deploy** and/or **releasepanel-runner** (`INSTALL_MODE=control|runner`) live under **`legacy/`** for historical context only.
+**Older** scripts that cloned **releasepanel-deploy** (legacy private monorepo, **not** current — use **releasepanel-central** instead) and/or **releasepanel-runner** (`INSTALL_MODE=control|runner`) live under **`legacy/`** for historical context only.
 
 - **`legacy/old-bootstrap.sh`** — root + `01-bootstrap.sh` era.
 - **`legacy/runner.sh`** — `curl` entry to **releasepanel-runner** `install-managed-vps.sh`.
