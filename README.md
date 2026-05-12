@@ -103,7 +103,7 @@ Further options (**`CENTRAL_APP_ROOT`**, **`CENTRAL_BRANCH`**, Certbot, web host
 | `CENTRAL_BRANCH` | Branch (default `main`). |
 | `CENTRAL_DEPLOY_KEY_B64` / `INSTALL_DEPLOY_KEY_B64` / `RELEASEPANEL_DEPLOY_KEY_B64` | Pre-supplied deploy key; skips interactive key paste. |
 | `SKIP_SSH_PROMPT` / `RELEASEPANEL_ASSUME_DEPLOY_KEY_ADDED` | Skip “press Enter” after adding key. |
-| `RP_BOOTSTRAP_USER` | User for **`chown`** + **`sudo`** handoff to **`bootstrap-central.sh`** (default `ubuntu`). |
+| `RP_BOOTSTRAP_USER` | User for **`chown`** + **`sudo`** handoff to **`bootstrap-central.sh`** (default **`ubuntu`**). If **`ubuntu`** is missing on the image, **`bootstrap.sh`** creates it (sudo, passwordless) — set this to another **existing** account to skip that. |
 | `RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN` | `true` — bypass rerun guard (repair only). |
 | `FORCE_NEW_DEPLOY_KEY` | `1` — regenerate key files. |
 | `CENTRAL_PUBLIC_BASE` / `CENTRAL_BOOTSTRAP_SCRIPT_URL` | Pin raw URL for **compatibility wrappers** fetching **`bootstrap.sh`**. |

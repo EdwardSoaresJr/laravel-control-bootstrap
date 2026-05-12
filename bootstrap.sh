@@ -239,9 +239,27 @@ clone_central_repo() {
 }
 
 ensure_handoff_user() {
-  if ! id "${HANDOFF_USER}" &>/dev/null; then
-    fail "Handoff user ${HANDOFF_USER} does not exist. Create it or set RP_BOOTSTRAP_USER."
+  if id "${HANDOFF_USER}" &>/dev/null; then
+    return 0
   fi
+
+  # Default handoff is `ubuntu` (cloud images, provision-os scripts). Minimal images may be root-only.
+  if [ "${HANDOFF_USER}" = "ubuntu" ]; then
+    log "No user 'ubuntu' on this image — creating one (sudo, passwordless) for bootstrap-central handoff."
+    if ! command -v adduser >/dev/null 2>&1; then
+      apt-get install -y adduser
+    fi
+    adduser --disabled-password --gecos "" ubuntu
+    usermod -aG sudo ubuntu
+    printf '%s\n' 'ubuntu ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/90-releasepanel-bootstrap-ubuntu
+    chmod 440 /etc/sudoers.d/90-releasepanel-bootstrap-ubuntu
+    if command -v visudo >/dev/null 2>&1; then
+      visudo -cf /etc/sudoers.d/90-releasepanel-bootstrap-ubuntu || fail "sudoers file failed validation"
+    fi
+    return 0
+  fi
+
+  fail "Handoff user ${HANDOFF_USER} does not exist. Create it, or set RP_BOOTSTRAP_USER to an existing account (default ubuntu is auto-created when missing)."
 }
 
 chown_clone_for_handoff() {
