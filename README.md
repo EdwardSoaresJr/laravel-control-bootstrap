@@ -48,7 +48,7 @@ curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstr
   && env CENTRAL_REPO_SSH='git@github.com:EdwardSoaresJr/releasepanel-central.git' bash /tmp/rp-install.sh
 ```
 
-*(Forks or private mirrors: set `CENTRAL_REPO_SSH` to your `git@github.com:org/repo.git`.)*
+*(Forks or private mirrors: substitute your GitHub user or org for `EdwardSoaresJr` in the URL above.)*
 
 **Interactive path:** run from an **SSH session** so the script can pause after printing the **Deploy key** (or use **B64** / **`SKIP_SSH_PROMPT=1`** per below).
 

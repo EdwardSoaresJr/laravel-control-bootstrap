@@ -13,7 +13,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/control-install.sh -o /tmp/rp-install.sh && bash /tmp/rp-install.sh
 #
 # Environment:
-#   CENTRAL_REPO_SSH   Required. SSH clone URL, e.g. git@github.com:org/releasepanel-central.git
+#   CENTRAL_REPO_SSH   Required. SSH clone URL, e.g. git@github.com:EdwardSoaresJr/releasepanel-central.git (forks: your user/org)
 #   CENTRAL_APP_ROOT   App directory (default: /var/www/releasepanel-central)
 #   CENTRAL_BRANCH     Branch to clone/track (default: main)
 #   DEPLOY_KEY_PATH    Private key path (default: ~/.ssh/releasepanel_central_git_deploy)
@@ -36,7 +36,7 @@ fi
 
 CENTRAL_REPO_SSH="${CENTRAL_REPO_SSH:-${GITHUB_REPO_SSH:-}}"
 if [[ -z "${CENTRAL_REPO_SSH}" ]]; then
-  echo "ERROR: set CENTRAL_REPO_SSH (e.g. git@github.com:org/releasepanel-central.git)" >&2
+  echo "ERROR: set CENTRAL_REPO_SSH (e.g. git@github.com:EdwardSoaresJr/releasepanel-central.git)" >&2
   exit 1
 fi
 
