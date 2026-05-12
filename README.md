@@ -1,81 +1,118 @@
 # ReleasePanel Bootstrap
 
-Public bootstrap layer with two roles:
+**Public trust and acquisition layer** for the **current** ReleasePanel architecture — **not** the platform, **not** orchestration, **not** runtime authority.
 
-- **Master ReleasePanel server** — stand up the machine that **hosts** ReleasePanel for your customers (`INSTALL_MODE=control`).
-- **Customer VPS** — connect a shop’s server to **their account** on your hosted ReleasePanel (**[releasepanel-runner](https://github.com/EdwardSoaresJr/releasepanel-runner)** `install-managed-vps.sh`, or legacy **`bootstrap.sh INSTALL_MODE=runner`**).
+This repository stays **tiny**, **shell-only**, **auditable**, and **boring by design**. At first boot, **no trusted Central runtime exists yet**, so the only thing that can be public is a **minimal** script surface: **establish Git trust → clone private code → hand off**.
 
-## Master server — ReleasePanel control plane (`INSTALL_MODE=control`, default)
+| Repository | Role |
+|------------|------|
+| **releasepanel-bootstrap** (this repo, **public**) | Deploy key + clone private **`releasepanel-central`**; hand off to **`bootstrap-central.sh`**. No secrets here. No product logic. |
+| **releasepanel-central** (**private**) | Operational control plane: Laravel app, converge scripts, **`.env`**, Managed MySQL, real deployment behavior. |
+| **releasepanel-agent** (**private**, agent runtime) | Execution / enrollment on managed nodes — **not** installed from this repo. |
 
-Prepares Ubuntu just enough to **SSH-clone** private **[releasepanel-deploy](https://github.com/EdwardSoaresJr/releasepanel-deploy)** into `/opt/releasepanel-deploy`, then runs **`scripts/01-bootstrap.sh`** (full panel stack). **releasepanel-deploy** is **your** toolkit to provision the **master** server, not something customers run on their app VPSes.
-
-Generates a deploy key unless you pass **`RELEASEPANEL_DEPLOY_KEY_B64`**.
-
-## Customer VPS — link to hosted ReleasePanel
-
-Canonical installer: **`install-managed-vps.sh`** in **[releasepanel-runner](https://github.com/EdwardSoaresJr/releasepanel-runner)** (raw GitHub). **No** deploy key.
-
-1. Installs `git` / `curl`, then **`git clone`** public **releasepanel-runner** → `/opt/releasepanel-runner`.
-2. Runs **`toolkit/scripts/bootstrap-runner.sh`**.
-
-The ReleasePanel UI **Bootstrap command** uses that raw URL with env vars (`RELEASEPANEL_PANEL_URL`, `RELEASEPANEL_SERVER_ID`, `RELEASEPANEL_RUNNER_KEY`).
-
-**`runner.sh`** in this repo is optional: it `curl`s **`install-managed-vps.sh`** (override with **`RELEASEPANEL_MANAGED_VPS_INSTALL_URL`**).
-
-**`bootstrap.sh` with `INSTALL_MODE=runner`** remains supported as an alternate entrypoint (same clone + handoff).
-
-Anonymous HTTPS only; use **`RELEASEPANEL_RUNNER_REPO_HTTPS`** only for a **public** mirror of **releasepanel-runner**.
-
-## One-line master server (your ReleasePanel host)
-
-**First install only.** After ReleasePanel exists under `/var/www/sites/releasepanel-app/production`, **do not** re-pipe this script for updates — it is **not** `self-update` and will re-run the full stack bootstrap.
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | bash
-```
-
-**Updates (already installed):**
-
-```bash
-cd /opt/releasepanel-deploy && git pull --ff-only origin main && sudo releasepanel self-update
-```
-
-**Intentional repair re-bootstrap:** `RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN=true` with the same curl (rare; expect stack scripts to run again).
-
-## One-line customer VPS (paste panel URL + runner key)
-
-```bash
-RELEASEPANEL_PANEL_URL='https://app.releasepanel.com' \
-RELEASEPANEL_RUNNER_KEY='paste-generated-runner-key' \
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/runner.sh)"
-```
-
-`runner.sh` downloads **`install-managed-vps.sh`** from **releasepanel-runner** (not **`bootstrap.sh`**).
-
-## Deploy key (master server / `control` mode only)
+**Flow:**
 
 ```text
-https://github.com/EdwardSoaresJr/releasepanel-deploy/settings/keys
+Fresh VPS
+  → curl control-install.sh
+  → generate or supply deploy key (B64 optional)
+  → git ls-remote + clone private releasepanel-central
+  → ./scripts/bootstrap-central.sh (authoritative converge)
+  → verify-central.sh (operational truth)
+  → operational Central
 ```
+
+---
+
+## Why this repo is public
+
+Bootstrap runs **before** you have Central, agents, private runtime, or existing SSH trust to that stack. The public script is **low-trust**: no secrets committed, no orchestration engine — only enough to **clone** the private repo after you register a **read-only GitHub Deploy key**.
+
+## Why the platform repo is private
+
+**releasepanel-central** holds application code, **`.env`**/secrets policy, provisioning logic, and operational behavior. That is **platform authority**, not acquisition.
+
+## Why this repo stays intentionally small
+
+Bootstrap repos **drift** into shadow platforms (extra provisioning, env engines, “temporary” orchestration). Guardrail: **establish trust → acquire repo → hand off**. For routine **application** updates after the host exists, use **`git pull --ff-only`** + **`deploy-central.sh`** inside the clone — not a second helping of `curl | bash` for every deploy.
+
+---
+
+## Canonical one-line (control plane host)
+
+**Set** `CENTRAL_REPO_SSH` to your **private** `git@github.com:…/releasepanel-central.git`.
 
 ```bash
-export RELEASEPANEL_DEPLOY_KEY_B64="$(base64 -i /path/to/private/key | tr -d '\n')"
-curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/control-install.sh -o /tmp/rp-install.sh \
+  && env CENTRAL_REPO_SSH='git@github.com:YOUR_ORG/releasepanel-central.git' bash /tmp/rp-install.sh
 ```
 
-## Overrides
+**Interactive path:** run from an **SSH session** so the script can pause after printing the **Deploy key** (or use **B64** / **`SKIP_SSH_PROMPT=1`** per below).
+
+**Non-interactive / CI / DR** (key **already** a Deploy key on GitHub):
+
+```bash
+export CENTRAL_DEPLOY_KEY_B64="$(base64 -w0 < /path/to/deploy_key_ed25519)"   # GNU base64; macOS: base64 -i ... | tr -d '\n'
+export CENTRAL_REPO_SSH='git@github.com:YOUR_ORG/releasepanel-central.git'
+curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/control-install.sh -o /tmp/rp-install.sh \
+  && bash /tmp/rp-install.sh
+```
+
+Aliases for the same B64 value: **`INSTALL_DEPLOY_KEY_B64`**, **`RELEASEPANEL_DEPLOY_KEY_B64`**.
+
+---
+
+## Repo layout
+
+| Path | Purpose |
+|------|---------|
+| `control-install.sh` | Downloads `scripts/public-droplet-bootstrap.sh` to a temp file and `exec`s it. |
+| `scripts/public-droplet-bootstrap.sh` | Deploy key, `git ls-remote`, clone/ff-only pull, **`exec bootstrap-central.sh`** if **`.env`** exists; else exit **2** with instructions. |
+| `legacy/` | **Archived** installer for the **pre–releasepanel-central** stack (**releasepanel-deploy** / runner modes). **Do not use for new installs.** |
+
+---
+
+## Environment (summary)
 
 | Variable | Purpose |
 |----------|---------|
-| `RELEASEPANEL_INSTALL_MODE` | `control` = **your** master ReleasePanel host; `runner` = legacy customer path inside **`bootstrap.sh`** (prefer **`install-managed-vps.sh`** from **releasepanel-runner**) |
-| `RELEASEPANEL_RUNNER_REPO_HTTPS` | **releasepanel-runner** git URL (default: public `EdwardSoaresJr/releasepanel-runner`) |
-| `RELEASEPANEL_MANAGED_VPS_INSTALL_URL` | Used by **`runner.sh`** to fetch **`install-managed-vps.sh`** (default: **releasepanel-runner** raw URL) |
-| `RELEASEPANEL_BOOTSTRAP_URL` | Legacy; **`control`** mode one-liner only |
-| `RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN` | Set `true` so **`control`** one-liner, **`01-bootstrap.sh`**, or **`bootstrap-releasepanel.sh`** may run again after the panel exists (repair / you accept a full stack re-run) |
-| `RELEASEPANEL_BOOTSTRAP_APT_UPGRADE` | On the server: set `true` with **`01-bootstrap.sh`** to run **`apt upgrade`** even when the stack was provisioned before (default skips repeat full upgrades) |
-| `RELEASEPANEL_BOOTSTRAP_SKIP_APT_UPGRADE` | Set `true` to skip **`apt upgrade`** even on first bootstrap (advanced) |
+| `CENTRAL_REPO_SSH` | **Required.** SSH URL for private **releasepanel-central**. Alias: `GITHUB_REPO_SSH`. |
+| `CENTRAL_APP_ROOT` | Clone target (default `/var/www/releasepanel-central`). |
+| `CENTRAL_BRANCH` | Git branch (default `main`). |
+| `CENTRAL_PUBLIC_BASE` | Override raw URL root for this repo’s `main` tree (advanced). |
+| `CENTRAL_BOOTSTRAP_SCRIPT_URL` | Pin full raw URL of `public-droplet-bootstrap.sh` (tags/releases). |
+| `CENTRAL_DEPLOY_KEY_B64` / `INSTALL_DEPLOY_KEY_B64` / `RELEASEPANEL_DEPLOY_KEY_B64` | Optional PEM private key, base64; skips interactive deploy-key step. |
+| `SKIP_SSH_PROMPT` | `1` if Deploy key is **already** on GitHub (no TTY). |
+| `FORCE_NEW_DEPLOY_KEY` | `1` to regenerate key files. |
 
-## Idempotency
+Further Central bootstrap options (**`CENTRAL_WEB_HOSTNAME`**, Certbot, verify URL, …) are documented in **releasepanel-central** (`scripts/bootstrap-central.sh`, docs).
 
-- **`INSTALL_MODE=runner`:** Pulling **releasepanel-runner** and re-running **`bootstrap-runner.sh`** is the intended path; still prefer **`install-managed-vps.sh`** from the panel for new servers.
-- **`INSTALL_MODE=control`:** The one-liner **refuses** to continue if the panel tree already exists, so you don’t accidentally full-stack bootstrap on every update. On the server, **`01-bootstrap.sh`** and **`bootstrap-releasepanel.sh`** also refuse a second full install unless **`RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN=true`** (or **`RELEASEPANEL_BOOTSTRAP_FORCE_FRESH=true`** for advanced reprovision); a marker is written to **`/var/lib/releasepanel/bootstrap-complete`** when the installer finishes. Use **`releasepanel self-update`** for routine code sync.
+---
+
+## Safety posture (explicit)
+
+- **No** secrets committed in this repo.
+- **No** `.env` generation — operator creates **`.env`** in the private clone from **`.env.example`**.
+- **No** `mysql-server` / `mariadb-server` install from these scripts (Central uses **DigitalOcean Managed MySQL**).
+- **No** orchestration / browser runtime coupling here.
+- **Loud failures**, **`git pull --ff-only`** on re-run, **`git ls-remote`** before clone.
+
+---
+
+## Legacy (pre–Central architecture)
+
+**Older** scripts that cloned **releasepanel-deploy** and/or **releasepanel-runner** (`INSTALL_MODE=control|runner`) live under **`legacy/`** for historical context only.
+
+- **`legacy/old-bootstrap.sh`** — root + `01-bootstrap.sh` era.
+- **`legacy/runner.sh`** — `curl` entry to **releasepanel-runner** `install-managed-vps.sh`.
+
+See **`legacy/README.md`** and **`legacy/old-runner-flow-notes.md`**.
+
+**Do not** use legacy paths for new **releasepanel-central** installs.
+
+---
+
+## Related
+
+- Private app: **releasepanel-central** — `README.md`, `docs/FIRST-DEPLOY-SMOKE.md`, `docs/PRODUCTION-DEPLOYMENT.md`.
+- Optional stable URL: serve the same `control-install.sh` from your own static host; content should match this repo.
