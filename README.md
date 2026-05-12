@@ -41,7 +41,7 @@ Bootstrap repos **drift** into shadow platforms (extra provisioning, env engines
 
 ## Canonical one-line (control plane host)
 
-**Set** `CENTRAL_REPO_SSH` to your **private** `git@github.com:…/releasepanel-central.git`. If you **SSH as root** (common on new droplets), the script **re-runs as `ubuntu`** so deploy keys and `/var/www` ownership stay consistent; override with **`RP_BOOTSTRAP_USER`** if needed.
+**Set** `CENTRAL_REPO_SSH` to your **private** `git@github.com:…/releasepanel-central.git`. **Root `curl | bash` is supported** (same posture as the pre–Central OG bootstrap): deploy keys live under **`/root/.ssh`**, apt uses hardened options, **`~/.ssh/config`** pins GitHub to the deploy key; the clone is **`chown`**’d to **`ubuntu`** (or **`RP_BOOTSTRAP_USER`**) before **`bootstrap-central.sh`**.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/control-install.sh -o /tmp/rp-install.sh \
@@ -70,7 +70,7 @@ Aliases for the same B64 value: **`INSTALL_DEPLOY_KEY_B64`**, **`RELEASEPANEL_DE
 | Path | Purpose |
 |------|---------|
 | `control-install.sh` | Downloads `scripts/public-droplet-bootstrap.sh` to a temp file and `exec`s it. |
-| `scripts/public-droplet-bootstrap.sh` | Deploy key, `git ls-remote`, clone/ff-only pull, **`exec bootstrap-central.sh`** if **`.env`** exists; else exit **2** with instructions. |
+| `scripts/public-droplet-bootstrap.sh` | OG-era patterns (see **`legacy/old-bootstrap.sh`**) adapted for Central: deploy key, `ssh/config`, `git ls-remote`, clone/**`pull --ff-only`**, rerun guard when **`vendor/`** exists, hand off to **`bootstrap-central.sh`**. |
 | `legacy/` | **Archived** installers aimed at the old **`releasepanel-deploy`** monorepo (and runner paths). **`releasepanel-deploy` is legacy** — replaced by **`releasepanel-central`**. **Do not use for new installs.** |
 
 ---
@@ -86,7 +86,9 @@ Aliases for the same B64 value: **`INSTALL_DEPLOY_KEY_B64`**, **`RELEASEPANEL_DE
 | `CENTRAL_BOOTSTRAP_SCRIPT_URL` | Pin full raw URL of `public-droplet-bootstrap.sh` (tags/releases). |
 | `CENTRAL_DEPLOY_KEY_B64` / `INSTALL_DEPLOY_KEY_B64` / `RELEASEPANEL_DEPLOY_KEY_B64` | Optional PEM private key, base64; skips interactive deploy-key step. |
 | `SKIP_SSH_PROMPT` | `1` if Deploy key is **already** on GitHub (no TTY). |
-| `RP_BOOTSTRAP_USER` | When **root** runs the bootstrap script, sudo to this user (default **`ubuntu`** if the account exists). |
+| `RELEASEPANEL_ASSUME_DEPLOY_KEY_ADDED` | `true` — same as **`SKIP_SSH_PROMPT=1`** (OG-era name). |
+| `RP_BOOTSTRAP_USER` | When **root** runs the installer: **`chown`** clone to this user and **`sudo`** handoff to **`bootstrap-central.sh`** (default **`ubuntu`**). |
+| `RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN` | `true` — allow the curl installer when **`.env` + `vendor/`** already exist (repair only). |
 | `FORCE_NEW_DEPLOY_KEY` | `1` to regenerate key files. |
 
 Further Central bootstrap options (**`CENTRAL_WEB_HOSTNAME`**, Certbot, verify URL, …) are documented in **releasepanel-central** (`scripts/bootstrap-central.sh`, docs).

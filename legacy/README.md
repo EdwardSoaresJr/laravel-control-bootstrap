@@ -6,7 +6,7 @@ Contents here are **archived** for history and **must not** be used for new **re
 
 | File | Era |
 |------|-----|
-| `old-bootstrap.sh` | Cloned private **releasepanel-deploy** (legacy), ran `scripts/01-bootstrap.sh`, `INSTALL_MODE=control` or `runner`. |
+| `old-bootstrap.sh` | Cloned private **releasepanel-deploy** (legacy), ran `scripts/01-bootstrap.sh`, `INSTALL_MODE=control` or `runner`. Its **operational patterns** (root-first droplet, hardened apt, deploy-key + `~/.ssh/config`, rerun guard) are **ported** into **`../scripts/public-droplet-bootstrap.sh`** for **releasepanel-central**. |
 | `runner.sh` | Fetched **releasepanel-runner** `install-managed-vps.sh` for customer VPS enrollment. |
 
 New architecture:
