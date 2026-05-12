@@ -45,8 +45,10 @@ Bootstrap repos **drift** into shadow platforms (extra provisioning, env engines
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/control-install.sh -o /tmp/rp-install.sh \
-  && env CENTRAL_REPO_SSH='git@github.com:YOUR_ORG/releasepanel-central.git' bash /tmp/rp-install.sh
+  && env CENTRAL_REPO_SSH='git@github.com:EdwardSoaresJr/releasepanel-central.git' bash /tmp/rp-install.sh
 ```
+
+*(Forks or private mirrors: set `CENTRAL_REPO_SSH` to your `git@github.com:org/repo.git`.)*
 
 **Interactive path:** run from an **SSH session** so the script can pause after printing the **Deploy key** (or use **B64** / **`SKIP_SSH_PROMPT=1`** per below).
 
@@ -54,7 +56,7 @@ curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstr
 
 ```bash
 export CENTRAL_DEPLOY_KEY_B64="$(base64 -w0 < /path/to/deploy_key_ed25519)"   # GNU base64; macOS: base64 -i ... | tr -d '\n'
-export CENTRAL_REPO_SSH='git@github.com:YOUR_ORG/releasepanel-central.git'
+export CENTRAL_REPO_SSH='git@github.com:EdwardSoaresJr/releasepanel-central.git'
 curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/control-install.sh -o /tmp/rp-install.sh \
   && bash /tmp/rp-install.sh
 ```
