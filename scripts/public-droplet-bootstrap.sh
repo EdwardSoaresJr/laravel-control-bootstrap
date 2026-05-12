@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Deprecated path — use repo root bootstrap.sh (curl | bash) or control-install.sh (fetches bootstrap.sh).
-# Kept so deep links to this path still work.
+# COMPATIBILITY WRAPPER ONLY — no installer logic here.
+# Canonical install: https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh
+# Kept so deep links to .../scripts/public-droplet-bootstrap.sh still work.
 #
 set -euo pipefail
 

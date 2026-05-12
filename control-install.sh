@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Legacy entry name — canonical installer is bootstrap.sh (single self-contained script, OG structure).
-# This wrapper exists so old bookmarks to control-install.sh still work.
-# Canonical: https://github.com/EdwardSoaresJr/releasepanel-bootstrap
+# COMPATIBILITY WRAPPER ONLY — no installer logic here.
+# Canonical (primary) command — use this in new docs and automation:
+#   curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | bash
+# This file exists so old bookmarks to .../control-install.sh still work.
 #
 set -euo pipefail
 

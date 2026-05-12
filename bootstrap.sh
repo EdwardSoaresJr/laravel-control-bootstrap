@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# releasepanel-bootstrap — Central control plane, OG installer mechanics (single file, curl | bash).
+# PRIMARY INSTALLER for releasepanel-central — single canonical script in this repo.
+# (control-install.sh and scripts/public-droplet-bootstrap.sh only curl this file; no other install paths.)
 #
-# Canonical: https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh
+# Canonical URL: https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh
 #
 # Port of legacy/old-bootstrap.sh: same structure and operator ergonomics; targets releasepanel-central only.
 # NOT preserved: monorepo, INSTALL_MODE/runner, 01-bootstrap.sh, old deploy paths.
