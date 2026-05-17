@@ -1,134 +1,112 @@
-# ReleasePanel Bootstrap
+# releasepanel-bootstrap
 
-**Public trust and acquisition only:** this repo exists so you can install **ReleasePanel Central** on a **fresh Ubuntu VPS** without putting GitHub tokens in user-data. It is **not** the product, **not** orchestration, **not** runtime authority, and **not** how you update a host that already runs Central.
+**Public transport layer only.** This repo does **not** own ReleasePanel install semantics — it prepares the machine just enough to fetch the **authoritative toolkit** and execute **local scripts** from that checkout.
 
-**Canonical target:** private **`releasepanel-central`** → hand off to **`scripts/bootstrap-central.sh`** → **`scripts/verify-central.sh`** (operational truth) when that flow runs.
+| Repo | Role |
+|------|------|
+| **`releasepanel-bootstrap`** (this) | Tiny, auditable **curl/bash transport**: deps → **clone** → **exec** scripts inside the checkout. |
+| **`releasepanel-deploy`** | **Authoritative toolkit**: real bootstrap (`scripts/01-bootstrap.sh`), `self-update`, deploy/heal/runtime behavior — **inspect this repo for truth**. |
+| **`releasepanel-runner`** | Public customer/agent bundle; **`runner.sh`** here delegates to **`install-managed-vps.sh`** there. |
+
+**Legacy / history:** see **`legacy/`** and **`docs/legacy/`**.
 
 ---
 
-## Install (only command you need)
+## Hosted panel (control plane) — canonical one-liner
 
-Run as **root** (`sudo -i`).
+**Transport:** fetch **`install.sh`** → clone **`releasepanel-deploy`** → run **`scripts/01-bootstrap.sh`** from disk.
+
+When **`bootstrap.releasepanel.com`** is wired (CDN → `install.sh`), preferred:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | bash
+bash -c "$(curl -fsSL https://bootstrap.releasepanel.com/install.sh)"
 ```
 
-That is the **only** primary install path. Everything else in this repo is **compatibility** or **history**.
+Equivalent raw GitHub URL (always works if GitHub is reachable):
 
-**End-to-end flow:**
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/install.sh)"
+```
+
+`wget` variant:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/install.sh | bash
+```
+
+**What `install.sh` does (and nothing else):**
+
+1. Installs minimal packages: **`git`**, **`curl`**, **`ca-certificates`**, **`openssh-client`** (apt).
+2. Clones or updates **[releasepanel-deploy](https://github.com/EdwardSoaresJr/releasepanel-deploy)** (SSH deploy key flow for private repo, or HTTPS if you set **`RELEASEPANEL_DEPLOY_REPO_HTTPS`**).
+3. **`cd`** into that checkout and **`exec`** **`scripts/01-bootstrap.sh`** (all stack logic lives **there**).
+
+It **does not** hide provisioning: PHP, nginx, MySQL wiring, migrations, and runners come from **`releasepanel-deploy`**.
+
+**After the panel exists**, do **not** re-pipe `install.sh` for updates. Use the toolkit checkout:
+
+```bash
+cd /opt/releasepanel-deploy && git pull --ff-only origin main && sudo releasepanel self-update
+```
+
+**Repair / deliberate full re-bootstrap:** set **`RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN=true`** when invoking the transport or **`01-bootstrap.sh`** (see **`releasepanel-deploy`** docs).
+
+### Options & env (`install.sh`)
+
+| | |
+|--|--|
+| **`--dir PATH`** | Toolkit directory (default **`/opt/releasepanel-deploy`**). Must live under **`/opt/`**, no **`..`**. |
+| **`--branch REF`** | Git branch (default **`main`**). |
+| **`RELEASEPANEL_TOOLKIT_INSTALL_DIR`** / **`INSTALL_DIR`** | Same as **`--dir`**. |
+| **`RELEASEPANEL_TOOLKIT_BRANCH`** | Same as **`--branch`**. |
+| **`RELEASEPANEL_DEPLOY_REPO_SSH`** | SSH URL (default **`git@github.com:EdwardSoaresJr/releasepanel-deploy.git`**). |
+| **`RELEASEPANEL_DEPLOY_REPO_HTTPS`** | If set, clone over HTTPS (credentials/token per **`git`**; no deploy key from this script). |
+| **`RELEASEPANEL_DEPLOY_KEY_B64`** | Base64 private key for SSH clone (optional). |
+| **`RELEASEPANEL_ASSUME_DEPLOY_KEY_ADDED=true`** | Skip “press Enter” after printing pubkey (non-interactive). |
+
+Back-compat: **`bootstrap.sh`** with **`RELEASEPANEL_INSTALL_MODE=control`** (default) **`exec`**s **`install.sh`**. Older wrappers (**`control-install.sh`**, **`scripts/public-droplet-bootstrap.sh`**) download **`install.sh`**.
+
+---
+
+## Customer VPS (agent / workload host)
+
+Canonical path is **`install-managed-vps.sh`** in **[releasepanel-runner](https://github.com/EdwardSoaresJr/releasepanel-runner)** (used by the panel UI). **`runner.sh`** here is a thin redirect:
+
+```bash
+RELEASEPANEL_PANEL_URL='https://your-panel.example.com' \
+RELEASEPANEL_RUNNER_KEY='your-runner-key' \
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/runner.sh)"
+```
+
+Override URL: **`RELEASEPANEL_MANAGED_VPS_INSTALL_URL`**.
+
+Legacy: **`bootstrap.sh`** with **`RELEASEPANEL_INSTALL_MODE=runner`** still clones **`releasepanel-runner`** and runs **`toolkit/scripts/bootstrap-runner.sh`** locally (same idea: transport → local scripts).
+
+---
+
+## Private SSH clone (deploy key)
+
+Without **`RELEASEPANEL_DEPLOY_KEY_B64`**, **`install.sh`** generates **`/root/.ssh/releasepanel_deploy`**, prints the **public** key, and waits for you to add it under the **`releasepanel-deploy`** repo → **Settings → Deploy keys** (read-only).
 
 ```text
-Fresh VPS
-  → bootstrap.sh
-  → GitHub deploy-key trust + clone/pull private releasepanel-central
-  → bootstrap-central.sh (when .env exists in the clone)
-  → verify-central.sh (default inside that bootstrap)
-  → operational Central
+https://github.com/EdwardSoaresJr/releasepanel-deploy/settings/keys
 ```
 
-If **`.env`** is not in the clone yet, **`bootstrap.sh`** exits with instructions; create **`.env`** from **`.env.example`**, then re-run **`bootstrap.sh`** or run **`bootstrap-central.sh`** manually.
-
-**Routine updates** (after Central exists): **not** `curl | bash` again.
+Non-interactive:
 
 ```bash
-cd /var/www/releasepanel-central   # or your CENTRAL_APP_ROOT
-sudo git pull --ff-only origin main
-sudo -u releasepanel ./scripts/deploy-central.sh
+export RELEASEPANEL_DEPLOY_KEY_B64="$(base64 -i /path/to/private/key | tr -d '\n')"
+curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/install.sh | bash
 ```
 
-The installer **refuses** to act as a generic “repair” path once the tree looks fully converged (`.env`, `artisan`, `vendor`) unless you explicitly set **`RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN=true`** (break-glass only).
+---
+
+## Idempotency & safety
+
+- **`install.sh`** refuses to continue if **`/var/www/sites/releasepanel-app/production/current`** and **`shared/.env`** already exist (unless **`RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN=true`**) — avoids mistaking transport for **`self-update`**.
+- **`INSTALL_MODE=runner`** path updates **`releasepanel-runner`** and hands off to **`bootstrap-runner.sh`**; prefer **`runner.sh`** + **`install-managed-vps.sh`** for new servers.
 
 ---
 
-## What this repo is
+## `bootstrap.releasepanel.com`
 
-| Piece | Role |
-|------|------|
-| **releasepanel-bootstrap** (this repo, **public**) | **One script:** establish SSH/Git trust, acquire **`releasepanel-central`**, hand off. No app logic. |
-| **releasepanel-central** (**private**) | Control plane: Laravel, **`.env`**, Managed MySQL, **`bootstrap-central.sh`**, **`deploy-central.sh`**, **`verify-central.sh`**. |
-
-Customer or agent nodes are **not** installed from here; that is **releasepanel-agent** and product enrollment elsewhere.
-
----
-
-## Safety posture
-
-- **Fresh disposable Ubuntu VPS** — cold bootstrap, not a shared workstation.
-- **`bootstrap.sh`** may **replace `/root/.ssh/config`** with a minimal **`Host github.com`** block tied to the deploy key.
-- **`bootstrap.sh`**, as **root**, registers **`git config --global safe.directory <CENTRAL_APP_ROOT>`** when needed so **Git ≥ 2.35** can update a clone already **chown**ed to **`ubuntu`** (re-runs after handoff).
-- **No** secrets committed in this repo.
-- **No** **`.env`** generation here — you create **`.env`** in the private clone.
-- **No** `mysql-server` / `mariadb-server` (Central uses **managed** MySQL off the VPS).
-- **No** orchestration engine and **no** product runtime authority in this repo.
-- **Primary updates** are **`git pull --ff-only`** + **`deploy-central.sh`**, not re-running the public installer.
-
----
-
-## Advanced (optional)
-
-Use these only when you already know you need them.
-
-**Private fork / different GitHub org** — set SSH URL:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | \
-  env CENTRAL_REPO_SSH='git@github.com:your-org/releasepanel-central.git' bash
-```
-
-*(Use your real GitHub user or org in place of `your-org`.)*
-
-**Non-interactive** (deploy key already registered on the repo):
-
-```bash
-export CENTRAL_DEPLOY_KEY_B64="…"   # base64 PEM; see Central docs for tooling
-export CENTRAL_REPO_SSH='git@github.com:your-org/releasepanel-central.git'
-curl -fsSL https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh | bash
-```
-
-**Repair-only** re-run of the public installer when Central already looks converged:
-
-```bash
-RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN=true bash bootstrap.sh
-# (or pipe curl to bash with that env set)
-```
-
-Further options (**`CENTRAL_APP_ROOT`**, **`CENTRAL_BRANCH`**, Certbot, web hostname) live in **releasepanel-central** (`scripts/bootstrap-central.sh`, `docs/`).
-
-### Environment (reference)
-
-| Variable | Purpose |
-|----------|---------|
-| `CENTRAL_REPO_SSH` | SSH clone URL for **releasepanel-central** (sensible default in **`bootstrap.sh`**). Alias: `GITHUB_REPO_SSH`. |
-| `CENTRAL_APP_ROOT` | Clone directory (default `/var/www/releasepanel-central`). |
-| `CENTRAL_BRANCH` | Branch (default `main`). |
-| `CENTRAL_DEPLOY_KEY_B64` / `INSTALL_DEPLOY_KEY_B64` / `RELEASEPANEL_DEPLOY_KEY_B64` | Pre-supplied deploy key; skips interactive key paste. |
-| `SKIP_SSH_PROMPT` / `RELEASEPANEL_ASSUME_DEPLOY_KEY_ADDED` | Skip “press Enter” after adding key. |
-| `RP_BOOTSTRAP_USER` | User for **`chown`** + **`sudo`** handoff to **`bootstrap-central.sh`** (default **`ubuntu`**). If **`ubuntu`** is missing on the image, **`bootstrap.sh`** creates it (sudo, passwordless) — set this to another **existing** account to skip that. |
-| `RELEASEPANEL_BOOTSTRAP_ALLOW_RERUN` | `true` — bypass rerun guard (repair only). |
-| `FORCE_NEW_DEPLOY_KEY` | `1` — regenerate key files. |
-| `CENTRAL_PUBLIC_BASE` / `CENTRAL_BOOTSTRAP_SCRIPT_URL` | Pin raw URL for **compatibility wrappers** fetching **`bootstrap.sh`**. |
-
----
-
-## Compatibility wrappers (bookmarks only)
-
-These files contain **no installer logic**. They download **`bootstrap.sh`** and execute it so old links keep working:
-
-- `control-install.sh`
-- `scripts/public-droplet-bootstrap.sh`
-
-**New automation and docs should use the `bootstrap.sh` URL only.**
-
----
-
-## Legacy / history
-
-Anything involving the old private monorepo, runner enrollment installers, or pre–Central “install modes” lives under **`legacy/`** and **`docs/legacy/`**. **Do not** use that material for new Central installs. Start here: **[`legacy/README.md`](legacy/README.md)**.
-
----
-
-## Related
-
-- **releasepanel-central** — [`README.md`](https://github.com/EdwardSoaresJr/releasepanel-central/blob/main/README.md), [`docs/FIRST-DEPLOY-SMOKE.md`](https://github.com/EdwardSoaresJr/releasepanel-central/blob/main/docs/FIRST-DEPLOY-SMOKE.md), [`docs/PRODUCTION-DEPLOYMENT.md`](https://github.com/EdwardSoaresJr/releasepanel-central/blob/main/docs/PRODUCTION-DEPLOYMENT.md).
-- Optional: mirror **`bootstrap.sh`** from a stable URL you control (same bytes as this repo).
+Host **`install.sh`** at this hostname (static hosting or redirect to raw GitHub) so operators have a short, stable URL. The file content must match this repo’s **`install.sh`** — **no** extra logic on the CDN beyond TLS + caching.

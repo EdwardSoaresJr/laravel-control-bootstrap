@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # COMPATIBILITY WRAPPER ONLY — no installer logic here.
-# Canonical install: https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main/bootstrap.sh
+# Canonical control-plane transport: install.sh (clone releasepanel-deploy + local 01-bootstrap.sh).
 # Kept so deep links to .../scripts/public-droplet-bootstrap.sh still work.
 #
 set -euo pipefail
 
-CENTRAL_PUBLIC_BASE="${CENTRAL_PUBLIC_BASE:-https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main}"
+RELEASEPANEL_BOOTSTRAP_PUBLIC_BASE="${RELEASEPANEL_BOOTSTRAP_PUBLIC_BASE:-https://raw.githubusercontent.com/EdwardSoaresJr/releasepanel-bootstrap/main}"
 
 tmp="$( mktemp )"
 trap 'rm -f "${tmp}"' EXIT
 
-curl -fsSL "${CENTRAL_PUBLIC_BASE%/}/bootstrap.sh" -o "${tmp}"
+curl -fsSL "${RELEASEPANEL_BOOTSTRAP_PUBLIC_BASE%/}/install.sh" -o "${tmp}"
 exec bash "${tmp}" "$@"
